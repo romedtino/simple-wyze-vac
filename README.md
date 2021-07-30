@@ -43,6 +43,9 @@ If it all worked out, you should now have Wyze vacuum entity(ies)
 - Stop / Pause
 - Return to Base
 
+## Misc
+- Location is not supported but it is considered "supported" by HA so the button doesn't crash the component when using vacuum-card if you use it.
+
 ## TODO / Maybe in the Future
 - Room Clean
 - In theory everything from wyze-sdk should be possible?
