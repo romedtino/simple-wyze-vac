@@ -5,7 +5,7 @@ Simple implementation of the Wyze Vacuum right into Home Assistant.
 ## Prerequisites
 - Home Assistant 😅
 - [HACS](https://hacs.xyz/) Installed in Home Assistant
-- Wyze Account without 2FA
+- Wyze Account without 2FA - Tip: Create a new account that you share just the vacuum with that doesn't have 2FA enabled.
 
 ## Installation
 1. On Home Assistant go to HACS -> Integration
