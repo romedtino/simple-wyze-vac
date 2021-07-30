@@ -1,71 +1,73 @@
 import logging
-from functools import partial
+from datetime import timedelta
 
-import voluptuous as vol
-
-from const import WYZE_VAC_CLIENT, WYZE_VACUUMS
+from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS
 
 from wyze_sdk.models.devices import VacuumMode
 
 from homeassistant.components.vacuum import (
     PLATFORM_SCHEMA,
-    SUPPORT_BATTERY,
+    # SUPPORT_BATTERY,
     # SUPPORT_CLEAN_SPOT,
     # SUPPORT_FAN_SPEED,
-    # SUPPORT_LOCATE,
+    SUPPORT_LOCATE,
     SUPPORT_RETURN_HOME,
     # SUPPORT_SEND_COMMAND,
     SUPPORT_STATUS,
     SUPPORT_STOP,
-    SUPPORT_TURN_OFF,
-    SUPPORT_TURN_ON,
+    SUPPORT_START,
+    # SUPPORT_TURN_OFF,
+    # SUPPORT_TURN_ON,
     STATES,
-    VacuumEntity
+    STATE_CLEANING,
+    STATE_DOCKED,
+    STATE_RETURNING,
+    STATE_ERROR,
+    STATE_PAUSED,
+    StateVacuumEntity
 )
 
 SUPPORT_WYZE = (
-    SUPPORT_BATTERY,
-    # SUPPORT_CLEAN_SPOT,
-    # SUPPORT_FAN_SPEED,
-    # SUPPORT_LOCATE,
-    SUPPORT_RETURN_HOME,
-    # SUPPORT_SEND_COMMAND,
-    SUPPORT_STATUS,
-    SUPPORT_STOP,
-    SUPPORT_TURN_OFF,
-    SUPPORT_TURN_ON,
+    # SUPPORT_BATTERY
+    # SUPPORT_CLEAN_SPOT
+    # SUPPORT_FAN_SPEED
+    SUPPORT_LOCATE
+    | SUPPORT_RETURN_HOME
+    # SUPPORT_SEND_COMMAND
+    | SUPPORT_STATUS
+    | SUPPORT_STOP
+    | SUPPORT_START
+    # | SUPPORT_TURN_OFF
+    # | SUPPORT_TURN_ON
 )
 
 from homeassistant.helpers.icon import icon_for_battery_level
-
-from homeassistant.const import (
-    CONF_USERNAME,
-    CONF_PASSWORD
-)
-
-import homeassistant.helpers.config_validation as cv
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Required(CONF_USERNAME): cv.string, 
-        vol.Required(CONF_PASSWORD): cv.string,
-    }
-)
 
 _LOGGER = logging.getLogger(__name__)
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     
-    for dev_mac in hass.data[WYZE_VACUUMS]:
-        add_entities(WyzeVac(hass.data[WYZE_VAC_CLIENT], dev_mac))
+    vacs = []
+    for pl in hass.data[WYZE_VACUUMS]:
+        vacs.append(WyzeVac(hass.data[WYZE_VAC_CLIENT], pl["mac"], pl["model"], pl["name"]))
+
+    add_entities(vacs)
         
 
 
-class WyzeVac(VacuumEntity):
+class WyzeVac(StateVacuumEntity):
 
-    def __init__(self, client, vac_mac):
+    def __init__(self, client, vac_mac, model, name):
         self._client = client
         self._vac_mac = vac_mac
+        self._model = model
+        self._last_mode = STATE_DOCKED
+        self._name = name
+
+    @property
+    def unique_id(self) -> str:
+        """Return an unique ID."""
+        return self._name
 
     @property
     def supported_features(self):
@@ -73,71 +75,94 @@ class WyzeVac(VacuumEntity):
         return SUPPORT_WYZE
 
     @property
-    def unique_id(self) -> str:
-        """Return an unique ID."""
-        return self._vac_mac
-
-    @property
     def is_on(self):
         """Return true if vacuum is currently cleaning."""
-        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        return vacuum.mode != VacuumMode.IDLE
+        return self._last_mode != STATE_DOCKED
 
     @property
     def status(self):
         """Return the status of the vacuum cleaner."""
-        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        if vacuum.mode in [VacuumMode.SWEEPING]:
-            return STATES.STATE_CLEANING
-        if vacuum.mode in [VacuumMode.IDLE]:
-            return STATES.STATE_DOCKED
-        if vacuum.mode in [VacuumMode.ON_WAY_CHARGE, VacuumMode.FULL_FINISH_SWEEPING_ON_WAY_CHARGE]:
-            return STATES.RETURNING
-        return STATES.STATE_ERROR
+        return self._last_mode
 
     @property
-    def is_charging(self):
-        """Return true if vacuum is currently charging."""
-        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        return vacuum.charge_state
+    def state(self):
+        """Return the state of the vacuum cleaner."""
+        return self._last_mode
 
     @property
-    def battery_level(self):
-        """Return the battery level of the vacuum cleaner."""
-        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+    def name(self):
+        """Return the name of the device."""
+        return self._name
 
-        return vacuum.battery
+    # @property
+    # async def is_charging(self):
+    #     """Return true if vacuum is currently charging."""
+    #     vacuum = await self.hass.async_add_executor_job(self._client.vacuums.info(device_mac=self._vac_mac))
+    #     return vacuum.charge_state
 
-    @property
-    def battery_icon(self):
-        """Return the battery icon for the vacuum cleaner."""
-        return icon_for_battery_level(
-            battery_level=self.battery_level, charging=self.is_charging
-        )
+    # @property
+    # async def battery_level(self):
+    #     """Return the battery level of the vacuum cleaner."""
+    #     vacuum = await self.hass.async_add_executor_job(self._client.vacuums.info(device_mac=self._vac_mac))
 
-    def turn_on(self, **kwargs):
-        """Turn the vacuum on and start cleaning."""
-        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        self._client.vacuums.clean(device_mac=self._vac_mac, device_model=vacuum.product.model)
+    #     return vacuum.battery
+
+    # @property
+    # async def battery_icon(self):
+    #     """Return the battery icon for the vacuum cleaner."""
+    #     bat_level = await self.battery_level()
+    #     is_charge = await self.is_charging()
+    #     return icon_for_battery_level(
+    #         battery_level=bat_level, charging=is_charge
+        # )
+
+    # def turn_on(self, **kwargs):
+    #     """Turn the vacuum on and start cleaning."""
+    #     self._client.vacuums.clean(device_mac=self._vac_mac, device_model=self._model)
+    #     self._last_mode = STATE_CLEANING
+    
+    # def turn_off(self, **kwargs):
+    #     """Turn the vacuum on and start cleaning."""
+    #     self.return_to_base()
+
+    def start(self, **kwargs):
+        self._client.vacuums.clean(device_mac=self._vac_mac, device_model=self._model)
+
+    def pause(self, **kwargs):
+        """Stop the vacuum cleaner."""
+        self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model)
+        self._last_mode = STATE_PAUSED
 
     def stop(self, **kwargs):
         """Stop the vacuum cleaner."""
-        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        self._client.vacuums.pause(device_mac=self._vac_mac, device_model=vacuum.product.model)
-
-    async def async_stop(self, **kwargs):
-        """Stop the vacuum cleaner.
-        This method must be run in the event loop.
-        """
-        await self.hass.async_add_executor_job(partial(self.stop, **kwargs))
+        self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model)
+        self._last_mode = STATE_PAUSED
 
     def return_to_base(self, **kwargs):
         """Set the vacuum cleaner to return to the dock."""
-        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        self._client.vacuums.dock(device_mac=self._vac_mac, device_model=vacuum.product.model)
+        self._client.vacuums.dock(device_mac=self._vac_mac, device_model=self._model)
+        self._last_mode = STATE_RETURNING
 
-    async def async_return_to_base(self, **kwargs):
-        """Set the vacuum cleaner to return to the dock.
-        This method must be run in the event loop.
-        """
-        await self.hass.async_add_executor_job(partial(self.return_to_base, **kwargs))
+    def locate(self, **kwargs):
+        """Locate the vacuum cleaner."""
+        _LOGGER.warn("Locate called. Not Implemented.")
+        pass
+
+    def start_pause(self, **kwargs):
+        """Start, pause or resume the cleaning task."""
+        if self._last_mode in [ STATE_CLEANING, STATE_RETURNING]:
+            self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model)
+        else:
+            self._client.vacuums.clean(device_mac=self._vac_mac, device_model=self._model)
+
+    def update(self):
+        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+        if vacuum.mode in [VacuumMode.SWEEPING]:
+            self._last_mode = STATE_CLEANING
+        elif vacuum.mode in [VacuumMode.IDLE]:
+            self._last_mode = STATE_DOCKED
+        elif vacuum.mode in [VacuumMode.ON_WAY_CHARGE, VacuumMode.FULL_FINISH_SWEEPING_ON_WAY_CHARGE]:
+            self._last_mode = STATE_RETURNING
+        else:
+            self._last_mode = STATE_ERROR
+        
