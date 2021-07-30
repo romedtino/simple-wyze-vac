@@ -1,0 +1,11 @@
+{
+  "codeowners": ["romedtino"],
+  "config_flow": false,
+  "dependencies": [],
+  "documentation": "https://github.com/user/my_component/",
+  "domain": "simple_wyze_vac",
+  "iot_class": "calculated",
+  "name": "Simple Wyze Vacuum",
+  "requirements": ["wyze_sdk==1.2.1"],
+  "version": "1.0.0"
+}

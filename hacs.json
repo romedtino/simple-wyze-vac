@@ -1,0 +1,5 @@
+{
+  "name": "Simple Wyze Vacuum",
+  "render_readme": true,
+  "iot_class": "calculated"
+}
