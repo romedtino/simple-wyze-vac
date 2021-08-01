@@ -12,7 +12,7 @@ from homeassistant.components.vacuum import (
     # SUPPORT_FAN_SPEED,
     SUPPORT_LOCATE,
     SUPPORT_RETURN_HOME,
-    # SUPPORT_SEND_COMMAND,
+    SUPPORT_SEND_COMMAND,
     SUPPORT_STATUS,
     SUPPORT_STOP,
     SUPPORT_START,
@@ -33,7 +33,7 @@ SUPPORT_WYZE = (
     # SUPPORT_FAN_SPEED
     SUPPORT_LOCATE
     | SUPPORT_RETURN_HOME
-    # SUPPORT_SEND_COMMAND
+    | SUPPORT_SEND_COMMAND
     | SUPPORT_STATUS
     | SUPPORT_STOP
     | SUPPORT_START
@@ -154,6 +154,19 @@ class WyzeVac(StateVacuumEntity):
             self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model)
         else:
             self._client.vacuums.clean(device_mac=self._vac_mac, device_model=self._model)
+
+    def send_command(self, command, params=None, **kwargs):
+        """Perform a spot clean-up."""
+        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+        _LOGGER.info("Command: %s, params: %s", command, params)
+        if command in "sweep_rooms":
+            if "rooms" in params:
+                desired_rooms = params["rooms"]
+                self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in vacuum.current_map.rooms if room.name in desired_rooms])
+            else:
+                _LOGGER.warn("No rooms specified for vacuum. Cannot do spot clean")
+        else:
+            _LOGGER.warn("Unknown wyze vac command")
 
     def update(self):
         vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
