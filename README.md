@@ -44,11 +44,37 @@ If it all worked out, you should now have Wyze vacuum entity(ies)
 - Return to Base
 - Room Clean (Must use serivce call) Example: ![image](https://user-images.githubusercontent.com/18567128/127786476-ec3dbfcd-66f4-40e6-bfe5-fda0edad191d.png)
 
+```yaml
+service: vacuum.send_command
+data:
+  command: sweep_rooms
+  params:
+    rooms:
+      - Hallway
+      - Kitchen
+target:
+  entity_id: vacuum.theovac
+```
+
+- Fan Speed control - `quiet` `standard` `strong` Example: ![image](https://user-images.githubusercontent.com/18567128/128625430-29f77538-b638-481e-8221-0e10ff8618a9.png)
+
+```yaml
+service: vacuum.set_fan_speed
+data:
+  fan_speed: quiet
+target:
+  entity_id: vacuum.your_vac
+```
+
+
 ## Misc
 - Location is not supported but it is considered "supported" by HA so the button doesn't crash the component when using vacuum-card if you use it.
 
+
 ## TODO / Maybe in the Future
 - In theory everything from wyze-sdk should be possible?
+- Update wyze_sdk to no longer require the suggested tweak above
+- Add battery level once wyze_sdk battery query works again
 
 
 ## Shoutouts
