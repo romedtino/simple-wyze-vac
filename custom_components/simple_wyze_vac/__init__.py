@@ -1,6 +1,8 @@
 import logging
 import voluptuous as vol
 
+from datetime import timedelta
+
 from homeassistant import core
 from homeassistant.helpers import discovery
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
@@ -31,6 +33,8 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+SCAN_INTERVAL = timedelta(minutes=2)
+
 # async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
 def setup(hass: core.HomeAssistant, config: dict) -> bool:
     """Set up the Simple Wyze Vacuum component."""
@@ -53,7 +57,8 @@ def setup(hass: core.HomeAssistant, config: dict) -> bool:
         payload = {
             "mac": device.mac,
             "model": device.product.model,
-            "name": device.nickname
+            "name": device.nickname,
+            # "suction": device.clean_level #TODO - wyze_sdk currently broken self._clean_level != self.clean_level. Needs to be fixed first. 
         }
 
         hass.data[WYZE_VACUUMS].append(payload)
