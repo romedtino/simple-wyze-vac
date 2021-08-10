@@ -19,22 +19,6 @@ simple_wyze_vac:
   password: your_wyze_password
 ```
 6. Restart Home Assistant
-7. NOTE: As of the time of this writing (7/3/2021) Wyze had updated their protocol for logging in. This has caused an issue in the `wyze_sdk 1.2.1` version that this component is dependent on. To fix this, I followed the temporary work around [here](https://github.com/shauntarves/wyze-sdk/issues/35#issuecomment-885325398). The location of where Home Assistant installs python packages will depend on your installation. For example, I am running off of a Docker container, so I have to remote into my container and modify the file in `/usr/lib/share/python3.9/site-packages/...`. Tip: If you visit the Home Assistant logs, it usually shows you where wyze_sdk error'ed out and it outputs the full path.
-    1. Once you restart, Home Assistant should have pulled a copy of wyze_sdk in some site-packages directory. Find the wyze_sdk/ installation location. 
-    2. Modify wyze_sdk/service/auth_service.py under `_get_headers` there's this line
-    ```python
-     request_specific_headers.update({
-            'x-api-key': self.api_key,
-        })
-    ```
-    modify it to
-    ```python
-     request_specific_headers.update({
-            "user-agent": "wyze_android_2.11.40",
-            'x-api-key': self.api_key,
-        })
-    ```
-    3. Restart Home Assistant again
 
 If it all worked out, you should now have Wyze vacuum entity(ies)
 
@@ -65,7 +49,7 @@ data:
 target:
   entity_id: vacuum.your_vac
 ```
-
+- Battery Level
 
 ## Misc
 - Location is not supported but it is considered "supported" by HA so the button doesn't crash the component when using vacuum-card if you use it.
@@ -73,11 +57,9 @@ target:
 
 ## TODO / Maybe in the Future
 - In theory everything from wyze-sdk should be possible?
-- Update wyze_sdk to no longer require the suggested tweak above
-- Add battery level once wyze_sdk battery query works again
-
+- Currently using a forked version of wyze-sdk which fixes the login issue and showing battery levels. Need to revert back to using pypi release by shauntarves once he's updated his repo.
 
 ## Shoutouts
-- [@shauntarves/wyze-sdk](https://github.com/shauntarves/wyze-sdk) - Underlying base of this process
+- [@shauntarves/wyze-sdk](https://github.com/shauntarves/wyze-sdk) - Underlying base of this process (Currently forked here: https://github.com/romedtino/wyze-sdk)
 - [aarongodfrey](https://aarongodfrey.dev/home%20automation/building_a_home_assistant_custom_component_part_1/) - Helped figuring out what in the world I am doing
 - [Samuel](https://blog.thestaticturtle.fr/creating-a-custom-component-for-homeassistant/) - More info on how custom components work
