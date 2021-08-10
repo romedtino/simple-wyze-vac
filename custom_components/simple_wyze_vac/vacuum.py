@@ -1,7 +1,7 @@
 import logging
 
 from datetime import timedelta
-
+import time
 
 from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS
 
@@ -171,9 +171,9 @@ class WyzeVac(StateVacuumEntity):
 
     def update(self):
         # Get vacuum states
+        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
 
         # Get vacuum mode
-        vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
         if vacuum.mode in [VacuumMode.SWEEPING]:
             self._last_mode = STATE_CLEANING
         elif vacuum.mode in [VacuumMode.IDLE, VacuumMode.BREAK_POINT]:
@@ -203,9 +203,8 @@ class WyzeVac(StateVacuumEntity):
                 wyze_suction = VacuumSuctionLevel.STANDARD
             elif self._fan_speed == FAN_SPEEDS[2]:
                 wyze_suction = VacuumSuctionLevel.STRONG
-            else:
-                return
                 
             self._client.vacuums.set_suction_level(device_mac=self._vac_mac, device_model=self._model, suction_level=wyze_suction)
+            time.sleep(1) # It takes awhile for the suction level to update Wyze servers
             self.schedule_update_ha_state()
         
