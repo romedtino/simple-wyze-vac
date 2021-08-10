@@ -194,7 +194,7 @@ class WyzeVac(StateVacuumEntity):
         vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
         if vacuum.mode in [VacuumMode.SWEEPING]:
             self._last_mode = STATE_CLEANING
-        elif vacuum.mode in [VacuumMode.IDLE]:
+        elif vacuum.mode in [VacuumMode.IDLE, VacuumMode.BREAK_POINT]:
             self._last_mode = STATE_DOCKED
         elif vacuum.mode in [VacuumMode.ON_WAY_CHARGE, VacuumMode.FULL_FINISH_SWEEPING_ON_WAY_CHARGE]:
             self._last_mode = STATE_RETURNING
