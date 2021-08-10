@@ -1,8 +1,6 @@
 import logging
 import voluptuous as vol
 
-from datetime import timedelta
-
 from homeassistant import core
 from homeassistant.helpers import discovery
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
@@ -32,8 +30,6 @@ CONFIG_SCHEMA = vol.Schema(
     },
     extra=vol.ALLOW_EXTRA,
 )
-
-SCAN_INTERVAL = timedelta(minutes=2)
 
 # async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
 def setup(hass: core.HomeAssistant, config: dict) -> bool:

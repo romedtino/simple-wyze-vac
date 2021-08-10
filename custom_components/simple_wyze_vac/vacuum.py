@@ -1,5 +1,8 @@
 import logging
 
+from datetime import timedelta
+
+
 from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS
 
 from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
@@ -40,6 +43,8 @@ SUPPORT_WYZE = (
     # SUPPORT_TURN_ON
 )
 
+SCAN_INTERVAL = timedelta(minutes=2)
+
 _LOGGER = logging.getLogger(__name__)
 
 FAN_SPEEDS = [VacuumSuctionLevel.QUIET.describe(),
@@ -66,6 +71,8 @@ class WyzeVac(StateVacuumEntity):
         self._name = pl["name"]
         self._fan_speed = pl["suction"]
         self._battery_level = pl["battery"]
+
+        self._scan_interval = SCAN_INTERVAL
 
     @property
     def unique_id(self) -> str:
@@ -180,6 +187,9 @@ class WyzeVac(StateVacuumEntity):
 
         # Update battery
         self._battery_level = vacuum.voltage
+
+        # Update suction level
+        self._fan_speed = vacuum.clean_level.describe()
 
     def set_fan_speed(self, fan_speed, **kwargs):
         """Set the vacuum's fan speed."""
