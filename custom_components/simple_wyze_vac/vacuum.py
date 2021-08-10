@@ -1,7 +1,4 @@
 import logging
-from datetime import timedelta
-
-import wyze_sdk
 
 from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS
 
@@ -9,7 +6,7 @@ from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
 
 from homeassistant.components.vacuum import (
     PLATFORM_SCHEMA,
-    # SUPPORT_BATTERY,
+    SUPPORT_BATTERY,
     # SUPPORT_CLEAN_SPOT,
     SUPPORT_FAN_SPEED,
     SUPPORT_LOCATE,
@@ -30,30 +27,30 @@ from homeassistant.components.vacuum import (
 )
 
 SUPPORT_WYZE = (
-    # SUPPORT_BATTERY
-    # SUPPORT_CLEAN_SPOT
-    SUPPORT_FAN_SPEED
-    | SUPPORT_LOCATE
-    | SUPPORT_RETURN_HOME
-    | SUPPORT_SEND_COMMAND
-    | SUPPORT_STATUS
-    | SUPPORT_STOP
-    | SUPPORT_START
-    # | SUPPORT_TURN_OFF
-    # | SUPPORT_TURN_ON
+    SUPPORT_BATTERY |
+    # SUPPORT_CLEAN_SPOT |
+    SUPPORT_FAN_SPEED |
+    SUPPORT_LOCATE |
+    SUPPORT_RETURN_HOME |
+    SUPPORT_SEND_COMMAND |
+    SUPPORT_STATUS |
+    SUPPORT_STOP |
+    SUPPORT_START 
+    # SUPPORT_TURN_OFF |
+    # SUPPORT_TURN_ON
 )
-
-from homeassistant.helpers.icon import icon_for_battery_level
 
 _LOGGER = logging.getLogger(__name__)
 
-FAN_SPEEDS = ["quiet", "standard", "strong"]
+FAN_SPEEDS = [VacuumSuctionLevel.QUIET.describe(),
+            VacuumSuctionLevel.STANDARD.describe(),
+            VacuumSuctionLevel.STRONG.describe()]
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     
     vacs = []
     for pl in hass.data[WYZE_VACUUMS]:
-        vacs.append(WyzeVac(hass.data[WYZE_VAC_CLIENT], pl["mac"], pl["model"], pl["name"]))
+        vacs.append(WyzeVac(hass.data[WYZE_VAC_CLIENT], pl))
 
     add_entities(vacs)
         
@@ -61,13 +58,14 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
 class WyzeVac(StateVacuumEntity):
 
-    def __init__(self, client, vac_mac, model, name):
+    def __init__(self, client, pl):
         self._client = client
-        self._vac_mac = vac_mac
-        self._model = model
+        self._vac_mac = pl["mac"]
+        self._model = pl["model"]
         self._last_mode = STATE_DOCKED
-        self._name = name
-        self._fan_speed = FAN_SPEEDS[0]
+        self._name = pl["name"]
+        self._fan_speed = pl["suction"]
+        self._battery_level = pl["battery"]
 
     @property
     def unique_id(self) -> str:
@@ -108,37 +106,11 @@ class WyzeVac(StateVacuumEntity):
     def fan_speed_list(self):
         """Return the status of the vacuum."""
         return FAN_SPEEDS
-
-    # @property
-    # async def is_charging(self):
-    #     """Return true if vacuum is currently charging."""
-    #     vacuum = await self.hass.async_add_executor_job(self._client.vacuums.info(device_mac=self._vac_mac))
-    #     return vacuum.charge_state
-
-    # @property
-    # async def battery_level(self):
-    #     """Return the battery level of the vacuum cleaner."""
-    #     vacuum = await self.hass.async_add_executor_job(self._client.vacuums.info(device_mac=self._vac_mac))
-
-    #     return vacuum.battery
-
-    # @property
-    # async def battery_icon(self):
-    #     """Return the battery icon for the vacuum cleaner."""
-    #     bat_level = await self.battery_level()
-    #     is_charge = await self.is_charging()
-    #     return icon_for_battery_level(
-    #         battery_level=bat_level, charging=is_charge
-        # )
-
-    # def turn_on(self, **kwargs):
-    #     """Turn the vacuum on and start cleaning."""
-    #     self._client.vacuums.clean(device_mac=self._vac_mac, device_model=self._model)
-    #     self._last_mode = STATE_CLEANING
     
-    # def turn_off(self, **kwargs):
-    #     """Turn the vacuum on and start cleaning."""
-    #     self.return_to_base()
+    @property
+    def battery_level(self):
+        """Return the battery level of the vacuum cleaner."""
+        return self._battery_level
 
     def start(self, **kwargs):
         self._client.vacuums.clean(device_mac=self._vac_mac, device_model=self._model)
@@ -191,6 +163,9 @@ class WyzeVac(StateVacuumEntity):
             _LOGGER.warn("Unknown wyze vac command")
 
     def update(self):
+        # Get vacuum states
+
+        # Get vacuum mode
         vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
         if vacuum.mode in [VacuumMode.SWEEPING]:
             self._last_mode = STATE_CLEANING
@@ -202,6 +177,9 @@ class WyzeVac(StateVacuumEntity):
             self._last_mode = STATE_PAUSED
         else:
             self._last_mode = STATE_ERROR
+
+        # Update battery
+        self._battery_level = vacuum.voltage
 
     def set_fan_speed(self, fan_speed, **kwargs):
         """Set the vacuum's fan speed."""

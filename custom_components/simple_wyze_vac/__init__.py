@@ -54,11 +54,14 @@ def setup(hass: core.HomeAssistant, config: dict) -> bool:
             device.mac,
         )
 
+        vac_info = client.vacuums.info(device_mac=device.mac)
+
         payload = {
             "mac": device.mac,
             "model": device.product.model,
             "name": device.nickname,
-            # "suction": device.clean_level #TODO - wyze_sdk currently broken self._clean_level != self.clean_level. Needs to be fixed first. 
+            "suction": vac_info.clean_level.describe(),
+            "battery": vac_info.voltage,
         }
 
         hass.data[WYZE_VACUUMS].append(payload)
