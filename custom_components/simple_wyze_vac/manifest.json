@@ -6,6 +6,6 @@
   "domain": "simple_wyze_vac",
   "iot_class": "calculated",
   "name": "Simple Wyze Vacuum",
-  "requirements": ["wyze_sdk>=1.2.1"],
-  "version": "1.0.0"
+  "requirements": ["https://github.com/romedtino/wyze-sdk/archive/refs/tags/v1.2.2b.zip#wyze-sdk==1.2.2b"],
+  "version": "1.2.2"
 }
