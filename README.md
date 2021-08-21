@@ -1,5 +1,11 @@
 # Simple Wyze Vacuum for Home Assistant
 
+## NOTE As of 8/20/2021 
+
+Wyze has recently implemented a rate limit on accessing their private APIs. Due to this change, I cannot recommend installing this integration in HA until this all gets sorted out. I might resort to adding a "send_command" that maybe you can use to query Wyze servers. This way it's more event based and it will be on you to make sure you don't hit the rate limits.
+
+## General
+
 Simple implementation of the Wyze Vacuum right into Home Assistant. 
 
 ## Prerequisites
