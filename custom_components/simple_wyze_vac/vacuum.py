@@ -113,6 +113,11 @@ class WyzeVac(StateVacuumEntity):
     def fan_speed_list(self):
         """Return the status of the vacuum."""
         return FAN_SPEEDS
+
+    @property
+    def should_poll(self) -> bool:
+        """Return True if entity has to be polled for state."""
+        return False
     
     @property
     def battery_level(self):
