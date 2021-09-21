@@ -2,7 +2,9 @@
 
 ## NOTE As of 8/20/2021 
 
-Wyze has recently implemented a rate limit on accessing their private APIs. Due to this change, I cannot recommend installing this integration in HA until this all gets sorted out. I might resort to adding a "send_command" that maybe you can use to query Wyze servers. This way it's more event based and it will be on you to make sure you don't hit the rate limits.
+Wyze has recently implemented a rate limit on accessing their private APIs. Due to this change, ~~I cannot recommend installing this integration in HA until this all gets sorted out. I might resort to adding a "send_command" that maybe you can use to query Wyze servers. This way it's more event based and it will be on you to make sure you don't hit the rate limits.~~ I have **disabled polling** on this integration.
+
+To update the state of the device, you can do a `vacuum.send_command` with command `update` which will update the state of the vacuum. See vacuum-card example for an implementation.
 
 ## General
 
@@ -24,7 +26,8 @@ simple_wyze_vac:
   username: your_wyze_email@email.com
   password: your_wyze_password
 ```
-6. Restart Home Assistant
+6. Verify your configuration file is valid
+7. Restart Home Assistant
 
 If it all worked out, you should now have Wyze vacuum entity(ies)
 
@@ -60,12 +63,69 @@ target:
 ## Misc
 - Location is not supported but it is considered "supported" by HA so the button doesn't crash the component when using vacuum-card if you use it.
 
+## Implementing vacuum-card
+There's a lovely Lovelace vacuum-card [here](https://github.com/denysdovhan/vacuum-card) in which you can implement your vacuum like so:
+![image](https://user-images.githubusercontent.com/18567128/134234543-545b1b1d-ab08-4c0d-98e3-8b96356d68d1.png)
+
+Here is my YAML configuration of the card
+
+```yaml
+type: custom:vacuum-card
+entity: vacuum.theovac
+image: default
+show_toolbar: true
+show_status: true
+show_name: true
+compact_view: false
+actions:
+  - name: Clean living room
+    service: script.vacuum_room_clean
+    icon: mdi:sofa
+    service_data:
+      rooms:
+        - Living Room
+  - name: Update
+    service: script.vacuum_update_state
+    icon: mdi:update
+
+```
+and the contents of the scripts it invokes
+```yaml
+alias: Vacuum Room Clean
+variables:
+  rooms:
+    - Living Room
+sequence:
+  - service: vacuum.send_command
+    data:
+      command: sweep_rooms
+      params:
+        rooms: ' {{ rooms }} '
+    target:
+      entity_id: vacuum.theovac
+mode: single
+
+```
+```yaml
+alias: Vacuum Update State
+sequence:
+  - service: vacuum.send_command
+    data:
+      command: update
+    target:
+      entity_id: vacuum.theovac
+variables:
+  rooms:
+    - Living Room
+mode: single
+```
+
+
 
 ## TODO / Maybe in the Future
 - In theory everything from wyze-sdk should be possible?
-- Currently using a forked version of wyze-sdk which fixes the login issue and showing battery levels. Need to revert back to using pypi release by shauntarves once he's updated his repo.
 
 ## Shoutouts
-- [@shauntarves/wyze-sdk](https://github.com/shauntarves/wyze-sdk) - Underlying base of this process (Currently forked here: https://github.com/romedtino/wyze-sdk)
+- [@shauntarves/wyze-sdk](https://github.com/shauntarves/wyze-sdk)
 - [aarongodfrey](https://aarongodfrey.dev/home%20automation/building_a_home_assistant_custom_component_part_1/) - Helped figuring out what in the world I am doing
 - [Samuel](https://blog.thestaticturtle.fr/creating-a-custom-component-for-homeassistant/) - More info on how custom components work
