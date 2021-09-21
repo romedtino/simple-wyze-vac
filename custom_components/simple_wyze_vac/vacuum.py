@@ -73,6 +73,7 @@ class WyzeVac(StateVacuumEntity):
         self._battery_level = pl["battery"]
 
         self._scan_interval = SCAN_INTERVAL
+        self.update()
 
     @property
     def unique_id(self) -> str:
@@ -171,6 +172,8 @@ class WyzeVac(StateVacuumEntity):
                 self.schedule_update_ha_state()
             else:
                 _LOGGER.warn("No rooms specified for vacuum. Cannot do spot clean")
+        if command in "update":
+            self.update()
         else:
             _LOGGER.warn("Unknown wyze vac command")
 
