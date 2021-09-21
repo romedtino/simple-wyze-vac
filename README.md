@@ -114,9 +114,6 @@ sequence:
       command: update
     target:
       entity_id: vacuum.theovac
-variables:
-  rooms:
-    - Living Room
 mode: single
 ```
 
