@@ -174,6 +174,7 @@ class WyzeVac(StateVacuumEntity):
                 _LOGGER.warn("No rooms specified for vacuum. Cannot do spot clean")
         if command in "update":
             self.update()
+            self.schedule_update_ha_state()
         else:
             _LOGGER.warn("Unknown wyze vac command")
 
@@ -198,6 +199,7 @@ class WyzeVac(StateVacuumEntity):
 
         # Update suction level
         self._fan_speed = vacuum.clean_level.describe()
+        
 
     def set_fan_speed(self, fan_speed, **kwargs):
         """Set the vacuum's fan speed."""
