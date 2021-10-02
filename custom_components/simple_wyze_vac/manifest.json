@@ -6,6 +6,9 @@
   "domain": "simple_wyze_vac",
   "iot_class": "calculated",
   "name": "Simple Wyze Vacuum",
-  "requirements": ["https://github.com/shauntarves/wyze-sdk/archive/refs/tags/v1.2.2.zip#wyze-sdk==1.2.2"],
+  "requirements": [
+    "https://github.com/shauntarves/wyze-sdk/archive/refs/tags/v1.2.2.zip#wyze-sdk==1.2.2",
+    "protobuf==3.13.0"
+  ],
   "version": "1.2.2"
 }
