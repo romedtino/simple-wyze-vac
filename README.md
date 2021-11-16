@@ -59,6 +59,25 @@ target:
   entity_id: vacuum.your_vac
 ```
 - Battery Level
+- Update status - Since the integration no longer polls, you can query the status of the vacuum by sending a custom command `update`
+
+```yaml
+service: vacuum.send_command
+data:
+  command: update
+target:
+  entity_id: vacuum.theovac
+```
+
+- Refresh Login Token - You can also refresh the login token if it has been awhile since you queried status and your login token has expired
+
+```yaml
+service: vacuum.send_command
+data:
+  command: refresh_token
+target:
+  entity_id: vacuum.theovac
+```
 
 ## Misc
 - Location is not supported but it is considered "supported" by HA so the button doesn't crash the component when using vacuum-card if you use it.
