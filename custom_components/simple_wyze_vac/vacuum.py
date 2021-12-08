@@ -3,10 +3,11 @@ import logging
 from datetime import timedelta
 import time
 
-from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS
+from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD
 
 from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
-from wyze_sdk.errors import WyzeApiError
+from wyze_sdk.errors import WyzeApiError, WyzeClientNotConnectedError
+from wyze_sdk import Client
 
 from homeassistant.components.vacuum import (
     PLATFORM_SCHEMA,
@@ -54,9 +55,12 @@ FAN_SPEEDS = [VacuumSuctionLevel.QUIET.describe(),
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     
+    username = hass.data[WYZE_USERNAME]
+    password = hass.data[WYZE_PASSWORD]
+
     vacs = []
     for pl in hass.data[WYZE_VACUUMS]:
-        vacs.append(WyzeVac(hass.data[WYZE_VAC_CLIENT], pl))
+        vacs.append(WyzeVac(hass.data[WYZE_VAC_CLIENT], pl, username, password))
 
     add_entities(vacs)
         
@@ -64,7 +68,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
 class WyzeVac(StateVacuumEntity):
 
-    def __init__(self, client, pl):
+    def __init__(self, client, pl, username, password):
         self._client = client
         self._vac_mac = pl["mac"]
         self._model = pl["model"]
@@ -72,6 +76,9 @@ class WyzeVac(StateVacuumEntity):
         self._name = pl["name"]
         self._fan_speed = pl["suction"]
         self._battery_level = pl["battery"]
+
+        self._username = username
+        self._password = password
 
         self._scan_interval = SCAN_INTERVAL
         self.update()
@@ -126,16 +133,16 @@ class WyzeVac(StateVacuumEntity):
         """Return the battery level of the vacuum cleaner."""
         return self._battery_level
 
+    def get_new_client(self):
+        _LOGGER.warn("Refreshing Wyze Client. Do this sparingly to be prevent lockout.")
+        self._client = Client(email=self._username, password=self._password)
+
     def start(self, **kwargs):
         try:
             vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        except WyzeApiError as e:
+        except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            if "AccessTokenError" in e.response['msg']:
-                _LOGGER.warn("Refreshing token for client")
-                self._client.refresh_token()
-            else:
-                _LOGGER.error("Unknown wyze API error occurred.")
+            self.get_new_client()
         finally:
             self._client.vacuums.clean(device_mac=self._vac_mac, device_model=self._model)
         
@@ -145,13 +152,9 @@ class WyzeVac(StateVacuumEntity):
         """Stop the vacuum cleaner."""
         try:
             vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        except WyzeApiError as e:
+        except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            if "AccessTokenError" in e.response['msg']:
-                _LOGGER.warn("Refreshing token for client")
-                self._client.refresh_token()
-            else:
-                _LOGGER.error("Unknown wyze API error occurred.")
+            self.get_new_client()
         finally:
             self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model)
         self._last_mode = STATE_PAUSED
@@ -161,13 +164,9 @@ class WyzeVac(StateVacuumEntity):
         """Stop the vacuum cleaner."""
         try:
             vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        except WyzeApiError as e:
+        except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            if "AccessTokenError" in e.response['msg']:
-                _LOGGER.warn("Refreshing token for client")
-                self._client.refresh_token()
-            else:
-                _LOGGER.error("Unknown wyze API error occurred.")
+            self.get_new_client()
         finally:
             self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model)
         self._last_mode = STATE_PAUSED
@@ -177,13 +176,9 @@ class WyzeVac(StateVacuumEntity):
         """Set the vacuum cleaner to return to the dock."""
         try:
            vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        except WyzeApiError as e:
+        except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            if "AccessTokenError" in e.response['msg']:
-                _LOGGER.warn("Refreshing token for client")
-                self._client.refresh_token()
-            else:
-                _LOGGER.error("Unknown wyze API error occurred.")
+            self.get_new_client()
         finally:
             self._client.vacuums.dock(device_mac=self._vac_mac, device_model=self._model)
         self._last_mode = STATE_RETURNING
@@ -204,20 +199,16 @@ class WyzeVac(StateVacuumEntity):
         self.schedule_update_ha_state()
 
     def send_command(self, command, params=None, **kwargs):
-        """Perform a spot clean-up."""
         try:
             vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        except WyzeApiError as e:
+        except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            if "AccessTokenError" in e.response['msg']:
-                _LOGGER.warn("Refreshing token for client")
-                self._client.refresh_token()
-            else:
-                _LOGGER.error("Unknown wyze API error occurred.")
+            self.get_new_client()
         finally:
             vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
         _LOGGER.info("Command: %s, params: %s", command, params)
         if command in "sweep_rooms":
+            """Perform a spot clean-up."""
             if "rooms" in params:
                 desired_rooms = params["rooms"]
                 self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in vacuum.current_map.rooms if room.name in desired_rooms])
@@ -227,8 +218,8 @@ class WyzeVac(StateVacuumEntity):
         elif command in "update":
             self.update()
             self.schedule_update_ha_state()
-        elif command in "refresh_token":
-            self._client.refresh_token()
+        elif command in ["refresh_token", "get_new_client"]:
+            self.get_new_client()
         else:
             _LOGGER.warn(f"Unknown wyze vac command: {command}")
 
@@ -236,13 +227,9 @@ class WyzeVac(StateVacuumEntity):
         # Get vacuum states
         try:
             vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-        except WyzeApiError as e:
+        except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            if "AccessTokenError" in e.response['msg']:
-                _LOGGER.warn("Refreshing token for client")
-                self._client.refresh_token()
-            else:
-                _LOGGER.error("Unknown wyze API error occurred.")
+            self.get_new_client()
         finally:
             vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
 
@@ -280,13 +267,9 @@ class WyzeVac(StateVacuumEntity):
                 
             try:
                 vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
-            except WyzeApiError as e:
+            except (WyzeApiError, WyzeClientNotConnectedError) as e:
                 _LOGGER.warn("Received WyzeApiError")
-                if "AccessTokenError" in e.response['msg']:
-                    _LOGGER.warn("Refreshing token for client")
-                    self._client.refresh_token()
-                else:
-                    _LOGGER.error("Unknown wyze API error occurred.")
+                self.get_new_client()
             finally:
                 self._client.vacuums.set_suction_level(device_mac=self._vac_mac, device_model=self._model, suction_level=wyze_suction)
             time.sleep(1) # It takes awhile for the suction level to update Wyze servers

@@ -5,7 +5,7 @@ from homeassistant import core
 from homeassistant.helpers import discovery
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 
-from .const import DOMAIN, WYZE_VAC_CLIENT, WYZE_VACUUMS
+from .const import DOMAIN, WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD
 
 from wyze_sdk import Client
 
@@ -42,6 +42,8 @@ def setup(hass: core.HomeAssistant, config: dict) -> bool:
     # client = await hass.async_add_executor_job(Client(email=username, password=password))
     client = Client(email=username, password=password)
     hass.data[WYZE_VAC_CLIENT] = client
+    hass.data[WYZE_USERNAME] = username
+    hass.data[WYZE_PASSWORD] = password
 
     for device in client.vacuums.list():
         _LOGGER.info(
