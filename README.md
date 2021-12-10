@@ -96,7 +96,7 @@ show_toolbar: true
 show_status: true
 show_name: true
 compact_view: false
-actions:
+shortcuts:
   - name: Clean living room
     service: script.vacuum_room_clean
     icon: mdi:sofa
