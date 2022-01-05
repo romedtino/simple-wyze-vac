@@ -20,7 +20,9 @@ Simple implementation of the Wyze Vacuum right into Home Assistant.
 2. Click menu on the top right
 3. Click on custom repositories
 4. Add https://github.com/romedtino/simple-wyze-vac as an Integration
-5. Edit your configuration.yaml and add
+5. Install/Add simple-wyze-vac
+6. Restart Home Assistant
+7. Edit your configuration.yaml and add
 ```yaml
 simple_wyze_vac:
   username: your_wyze_email@email.com
