@@ -144,19 +144,18 @@ class WyzeVac(StateVacuumEntity):
         return self._battery_level
 
     @property
-    def filter(self):
-        """Returns the filter hours left before recommended change"""
-        return FILTER_LIFETIME - int(self._filter)
+    def extra_state_attributes(self):
+        """Return the state attributes of the vacuum cleaner."""
+        data = {}
 
-    @property
-    def main_brush(self):
-        """Returns the main brush hours left before recommended change"""
-        return MAIN_BRUSH_LIFETIME - int(self._main_brush)
+        if self._filter is not None:
+            data["filter"] = FILTER_LIFETIME - int(self._filter)
+        if self._main_brush is not None:
+            data["main_brush"] = MAIN_BRUSH_LIFETIME - int(self._main_brush)
+        if self._side_brush is not None:
+            data["side_brush"] = SIDE_BRUSH_LIFETIME - int(self._side_brush)
 
-    @property
-    def side_brush(self):
-        """Returns the side brush hours left before recommended change"""
-        return SIDE_BRUSH_LIFETIME - int(self._side_brush)
+        return data
 
     def get_new_client(self):
         _LOGGER.warn("Refreshing Wyze Client. Do this sparingly to be prevent lockout.")
@@ -279,9 +278,9 @@ class WyzeVac(StateVacuumEntity):
         self._fan_speed = vacuum.clean_level.describe()
 
         # Update filter information
-        self.filter = vacuum.filter
-        self.main_brush = vacuum.main_brush
-        self.side_brush = vacuum.side_brush
+        self._filter = vacuum.filter
+        self._main_brush = vacuum.main_brush
+        self._side_brush = vacuum.side_brush
 
         self.get_last_map()
         
