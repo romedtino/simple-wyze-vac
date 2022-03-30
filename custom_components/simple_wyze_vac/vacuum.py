@@ -6,7 +6,8 @@ import time
 import urllib.request
 from pathlib import Path
 
-from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, DOMAIN
+from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, \
+                   DOMAIN, FILTER_LIFETIME, MAIN_BRUSH_LIFETIME, SIDE_BRUSH_LIFETIME
 
 from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
 from wyze_sdk.errors import WyzeApiError, WyzeClientNotConnectedError
@@ -82,6 +83,10 @@ class WyzeVac(StateVacuumEntity):
         self._fan_speed = pl["suction"]
         self._battery_level = pl["battery"]
 
+        self._filter = pl["battery"]
+        self._main_brush = pl["main_brush"]
+        self._side_brush = pl["side_brush"]
+
         self._username = username
         self._password = password
 
@@ -137,6 +142,21 @@ class WyzeVac(StateVacuumEntity):
     def battery_level(self):
         """Return the battery level of the vacuum cleaner."""
         return self._battery_level
+
+    @property
+    def filter(self):
+        """Returns the filter hours left before recommended change"""
+        return FILTER_LIFETIME - int(self._filter)
+
+    @property
+    def main_brush(self):
+        """Returns the main brush hours left before recommended change"""
+        return MAIN_BRUSH_LIFETIME - int(self._main_brush)
+
+    @property
+    def side_brush(self):
+        """Returns the side brush hours left before recommended change"""
+        return SIDE_BRUSH_LIFETIME - int(self._side_brush)
 
     def get_new_client(self):
         _LOGGER.warn("Refreshing Wyze Client. Do this sparingly to be prevent lockout.")
@@ -258,6 +278,11 @@ class WyzeVac(StateVacuumEntity):
         # Update suction level
         self._fan_speed = vacuum.clean_level.describe()
 
+        # Update filter information
+        self.filter = vacuum.filter
+        self.main_brush = vacuum.main_brush
+        self.side_brush = vacuum.side_brush
+
         self.get_last_map()
         
 
@@ -294,4 +319,4 @@ class WyzeVac(StateVacuumEntity):
             url = self._client.vacuums.get_sweep_records(device_mac=self._vac_mac, since=datetime.now())[0].map_img_big_url
 
         Path(f"www/{DOMAIN}").mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve(url, f"www/{DOMAIN}/vacuum_last_map.jpg")
+        urllib.request.urlretrieve(url, f"www/{DOMAIN}/vacuum_last_map.jpg")        
