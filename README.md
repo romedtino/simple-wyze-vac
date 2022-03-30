@@ -37,6 +37,7 @@ If it all worked out, you should now have Wyze vacuum entity(ies)
 - Start
 - Stop / Pause
 - Return to Base
+- Filter lifespan information (Main filter, main brush and side brush)
 - Room Clean (Must use serivce call) Example: ![image](https://user-images.githubusercontent.com/18567128/127786476-ec3dbfcd-66f4-40e6-bfe5-fda0edad191d.png)
 
 ```yaml
@@ -86,7 +87,7 @@ target:
 
 ## Implementing vacuum-card
 There's a lovely Lovelace vacuum-card [here](https://github.com/denysdovhan/vacuum-card) in which you can implement your vacuum like so:
-![image](https://user-images.githubusercontent.com/18567128/134234543-545b1b1d-ab08-4c0d-98e3-8b96356d68d1.png)
+![image](https://user-images.githubusercontent.com/18567128/160922320-91a358cd-f7cf-4add-948b-65ecd17bbed3.png)
 
 Here is my YAML configuration of the card
 
@@ -98,6 +99,17 @@ show_toolbar: true
 show_status: true
 show_name: true
 compact_view: false
+stats:
+    default:
+      - attribute: filter
+        unit: hours
+        subtitle: Filter
+      - attribute: side_brush
+        unit: hours
+        subtitle: Side brush
+      - attribute: main_brush
+        unit: hours
+        subtitle: Main brush
 shortcuts:
   - name: Clean living room
     service: script.vacuum_room_clean
