@@ -1,9 +1,12 @@
 import logging
 
 from datetime import timedelta
+from datetime import datetime
 import time
+import urllib.request
+from pathlib import Path
 
-from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD
+from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, DOMAIN
 
 from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
 from wyze_sdk.errors import WyzeApiError, WyzeClientNotConnectedError
@@ -20,6 +23,7 @@ from homeassistant.components.vacuum import (
     SUPPORT_STATUS,
     SUPPORT_STOP,
     SUPPORT_START,
+    SUPPORT_MAP,
     # SUPPORT_TURN_OFF,
     # SUPPORT_TURN_ON,
     STATES,
@@ -34,6 +38,7 @@ from homeassistant.components.vacuum import (
 SUPPORT_WYZE = (
     SUPPORT_BATTERY |
     # SUPPORT_CLEAN_SPOT |
+    SUPPORT_MAP |
     SUPPORT_FAN_SPEED |
     SUPPORT_LOCATE |
     SUPPORT_RETURN_HOME |
@@ -220,6 +225,8 @@ class WyzeVac(StateVacuumEntity):
             self.schedule_update_ha_state()
         elif command in ["refresh_token", "get_new_client"]:
             self.get_new_client()
+        elif command in ["get_map", "get_last_map"]:
+            self.get_last_map()
         else:
             _LOGGER.warn(f"Unknown wyze vac command: {command}")
 
@@ -250,6 +257,8 @@ class WyzeVac(StateVacuumEntity):
 
         # Update suction level
         self._fan_speed = vacuum.clean_level.describe()
+
+        self.get_last_map()
         
 
     def set_fan_speed(self, fan_speed, **kwargs):
@@ -274,4 +283,15 @@ class WyzeVac(StateVacuumEntity):
                 self._client.vacuums.set_suction_level(device_mac=self._vac_mac, device_model=self._model, suction_level=wyze_suction)
             time.sleep(1) # It takes awhile for the suction level to update Wyze servers
             self.schedule_update_ha_state()
-        
+    
+    def get_last_map(self):
+        try:
+            vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+        except (WyzeApiError, WyzeClientNotConnectedError) as e:
+            _LOGGER.warn("Received WyzeApiError")
+            self.get_new_client()
+        finally:
+            url = self._client.vacuums.get_sweep_records(device_mac=self._vac_mac, since=datetime.now())[0].map_img_big_url
+
+        Path(f"www/{DOMAIN}").mkdir(parents=True, exist_ok=True)
+        urllib.request.urlretrieve(url, f"www/{DOMAIN}/vacuum_last_map.jpg")
