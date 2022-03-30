@@ -138,7 +138,28 @@ sequence:
 mode: single
 ```
 
+### Adding map to vacuum card
+There is support for at least showing the last sweep map. To add it add a camera entity like shown below:
 
+```
+camera:
+- platform: local_file
+  file_path: /config/www/simple_wyze_vac/vacuum_last_map.jpg
+  name: "My Vaccuum Map"
+```
+
+With a camera entity, in your vacuum-card (if you're using it) you can add
+
+```
+map: camera.my_vacuum_map
+
+```
+
+which should then show the last sweep map 
+
+![image](https://user-images.githubusercontent.com/18567128/160503574-bca392b3-7143-4d92-8d53-2a6ff40da388.png)
+
+**TIP** - Wrap your vacuum card in a 'conditional' card and use the vacuum state of 'docked' to test if it is docked and undocked. This way, you can still have the vacuum logo and not the map when the vacuum is not running
 
 ## TODO / Maybe in the Future
 - In theory everything from wyze-sdk should be possible?
