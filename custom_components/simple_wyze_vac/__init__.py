@@ -60,6 +60,9 @@ def setup(hass: core.HomeAssistant, config: dict) -> bool:
             "name": device.nickname,
             "suction": vac_info.clean_level.describe(),
             "battery": vac_info.voltage,
+            "filter": vac_info.filter,
+            "main_brush": vac_info.main_brush,
+            "side_brush": vac_info.side_brush
         }
 
         hass.data[WYZE_VACUUMS].append(payload)
