@@ -7,7 +7,8 @@ import urllib.request
 from pathlib import Path
 
 from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, \
-                   DOMAIN, FILTER_LIFETIME, MAIN_BRUSH_LIFETIME, SIDE_BRUSH_LIFETIME
+                   DOMAIN, FILTER_LIFETIME, MAIN_BRUSH_LIFETIME, SIDE_BRUSH_LIFETIME, \
+                   CONF_POLLING, WYZE_SCAN_INTERVAL
 
 from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
 from wyze_sdk.errors import WyzeApiError, WyzeClientNotConnectedError
@@ -51,8 +52,6 @@ SUPPORT_WYZE = (
     # SUPPORT_TURN_ON
 )
 
-SCAN_INTERVAL = timedelta(minutes=2)
-
 _LOGGER = logging.getLogger(__name__)
 
 FAN_SPEEDS = [VacuumSuctionLevel.QUIET.describe(),
@@ -63,10 +62,18 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     
     username = hass.data[WYZE_USERNAME]
     password = hass.data[WYZE_PASSWORD]
+    polling = hass.data[CONF_POLLING]
+
+    global SCAN_INTERVAL
+    if isinstance(hass.data[WYZE_SCAN_INTERVAL], timedelta):
+        SCAN_INTERVAL = hass.data[WYZE_SCAN_INTERVAL]
+    else:
+        t = datetime.strptime(hass.data[WYZE_SCAN_INTERVAL],"%H:%M:%S")
+        SCAN_INTERVAL = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
 
     vacs = []
     for pl in hass.data[WYZE_VACUUMS]:
-        vacs.append(WyzeVac(hass.data[WYZE_VAC_CLIENT], pl, username, password))
+        vacs.append(WyzeVac(hass.data[WYZE_VAC_CLIENT], pl, username, password, polling))
 
     add_entities(vacs)
         
@@ -74,7 +81,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
 class WyzeVac(StateVacuumEntity):
 
-    def __init__(self, client, pl, username, password):
+    def __init__(self, client, pl, username, password, polling):
         self._client = client
         self._vac_mac = pl["mac"]
         self._model = pl["model"]
@@ -90,7 +97,12 @@ class WyzeVac(StateVacuumEntity):
         self._username = username
         self._password = password
 
-        self._scan_interval = SCAN_INTERVAL
+        self._polling = polling
+
+        global SCAN_INTERVAL
+        if self._polling:
+            _LOGGER.warn(f"Simple Wyze Vac Polling every {SCAN_INTERVAL}. Careful of hitting Wyze servers rate limits.")
+
         self.update()
 
     @property
@@ -136,7 +148,7 @@ class WyzeVac(StateVacuumEntity):
     @property
     def should_poll(self) -> bool:
         """Return True if entity has to be polled for state."""
-        return False
+        return self._polling
     
     @property
     def battery_level(self):
