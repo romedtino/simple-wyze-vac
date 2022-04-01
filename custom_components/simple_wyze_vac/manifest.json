@@ -4,8 +4,8 @@
   "dependencies": [],
   "documentation": "https://github.com/romedtino/simple-wyze-vac",
   "domain": "simple_wyze_vac",
-  "iot_class": "calculated",
+  "iot_class": "cloud_polling",
   "name": "Simple Wyze Vacuum",
   "requirements": ["https://github.com/romedtino/wyze-sdk/archive/refs/tags/v10.2.4.zip#wyze-sdk==10.2.4"],
-  "version": "1.5"
+  "version": "1.6"
 }

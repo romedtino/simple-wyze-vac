@@ -1,14 +1,26 @@
 # Simple Wyze Vacuum for Home Assistant
 
-## NOTE As of 8/20/2021 
-
-Wyze has recently implemented a rate limit on accessing their private APIs. Due to this change, ~~I cannot recommend installing this integration in HA until this all gets sorted out. I might resort to adding a "send_command" that maybe you can use to query Wyze servers. This way it's more event based and it will be on you to make sure you don't hit the rate limits.~~ I have **disabled polling** on this integration.
-
-To update the state of the device, you can do a `vacuum.send_command` with command `update` which will update the state of the vacuum. See vacuum-card example for an implementation.
+- [Simple Wyze Vacuum for Home Assistant](#simple-wyze-vacuum-for-home-assistant)
+  * [General](#general)
+  * [Prerequisites](#prerequisites)
+  * [Installation](#installation)
+  * [Supported Features](#supported-features)
+  * [Polling](#polling)
+  * [Misc](#misc)
+  * [Implementing vacuum-card](#implementing-vacuum-card)
+    + [Adding map to vacuum card](#adding-map-to-vacuum-card)
+  * [Shoutouts](#shoutouts)
 
 ## General
 
 Simple implementation of the Wyze Vacuum right into Home Assistant. 
+
+**NOTE** 
+
+By default, this integration **DOES NOT** automatically update your vacuum entity. This is due to Wyze applying a rate limit on integrations. For more details you can read the [reddit thread here](https://www.reddit.com/r/wyzecam/comments/p6bgj2/wyze_rate_limiting_requests_wyzeapi_likely_will/). However, there is an option to enable polling with a configuration change. This leaves this integration with two options to address this issue:
+
+- To update the state of the device, you can do a `vacuum.send_command` with command `update` which will update the state of the vacuum. See [vacuum-card example](#implementing-vacuum-card) below for an implementation.
+- Enable [Polling](#polling)
 
 ## Prerequisites
 - Home Assistant 😅
@@ -38,6 +50,8 @@ If it all worked out, you should now have Wyze vacuum entity(ies)
 - Stop / Pause
 - Return to Base
 - Filter lifespan information (Main filter, main brush and side brush)
+- Room names as vacuum attributes
+- Optional [Polling](#polling)
 - Room Clean (Must use serivce call) Example: ![image](https://user-images.githubusercontent.com/18567128/127786476-ec3dbfcd-66f4-40e6-bfe5-fda0edad191d.png)
 
 ```yaml
@@ -82,8 +96,23 @@ target:
   entity_id: vacuum.theovac
 ```
 
+## Polling
+
+To enable polling you can add these key/values in your configuration.yaml
+
+- `poll` - `True` or `False`, where `True` enables polling
+- `scan_interval` - Value in `HH:MM:SS`, setting this key/value without poll set to `True` does nothing
+
+```yaml
+simple_wyze_vac:
+  username: your_wyze_email@email.com
+  password: your_wyze_password
+  poll: True
+  scan_interval: "02:00:00"
+```
+
 ## Misc
-- Location is not supported but it is considered "supported" by HA so the button doesn't crash the component when using vacuum-card if you use it.
+- Location is currently not supported but it is considered "supported" by HA so the button doesn't crash the component when using vacuum-card defaults if you use it.
 
 ## Implementing vacuum-card
 There's a lovely Lovelace vacuum-card [here](https://github.com/denysdovhan/vacuum-card) in which you can implement your vacuum like so:
@@ -171,12 +200,50 @@ which should then show the last sweep map
 
 ![image](https://user-images.githubusercontent.com/18567128/161214208-b9de5906-ee86-4bce-97dc-f4a02a1fa15c.png)
 
-**TIP** - Wrap your vacuum card in a 'conditional' card and use the vacuum state of 'docked' to test if it is docked and undocked. This way, you can still have the vacuum logo and not the map when the vacuum is not running
+**TIP** - Wrap your vacuum card in a 'conditional' card and use the vacuum state of 'docked' to test if it is docked and undocked. This way, you can still have the vacuum logo and not the map when the vacuum is not running. Another option is to create a helper `input_boolean` and use that instead to toggle between showing the map and showing the vacuum like so:
 
-## TODO / Maybe in the Future
-- In theory everything from wyze-sdk should be possible?
+![vac_sample3](https://user-images.githubusercontent.com/18567128/161217759-762a70f2-3a1e-4f9f-ad86-5b8a80209173.gif)
+
+```yaml
+type: conditional
+conditions:
+  - entity: input_boolean.map_toggle
+    state: 'off'
+card:
+  type: custom:vacuum-card
+  entity: vacuum.theovac
+  image: default
+  show_toolbar: true
+  show_status: true
+  show_name: true
+  compact_view: false
+  stats:
+    default:
+      - attribute: filter
+        unit: hours
+        subtitle: Filter
+      - attribute: side_brush
+        unit: hours
+        subtitle: Side Brush
+      - attribute: main_brush
+        unit: hours
+        subtitle: Main Brush
+  shortcuts:
+    - name: Toggle Map
+      service: input_boolean.toggle
+      service_data:
+        entity_id: input_boolean.map_toggle
+      icon: mdi:map
+  view_layout:
+    position: sidebar
+view_layout:
+  position: sidebar
+
+```
+
 
 ## Shoutouts
-- [@shauntarves/wyze-sdk](https://github.com/shauntarves/wyze-sdk)
+- [@shauntarves/wyze-sdk](https://github.com/shauntarves/wyze-sdk) - This would not be possible without this awesomesauce
 - [aarongodfrey](https://aarongodfrey.dev/home%20automation/building_a_home_assistant_custom_component_part_1/) - Helped figuring out what in the world I am doing
 - [Samuel](https://blog.thestaticturtle.fr/creating-a-custom-component-for-homeassistant/) - More info on how custom components work
+- [markdown-toc](http://ecotrust-canada.github.io/markdown-toc/) - For markdown TOC generator
