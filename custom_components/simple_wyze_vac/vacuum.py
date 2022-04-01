@@ -99,6 +99,8 @@ class WyzeVac(StateVacuumEntity):
 
         self._polling = polling
 
+        self._rooms = []
+
         global SCAN_INTERVAL
         if self._polling:
             _LOGGER.warn(f"Simple Wyze Vac Polling every {SCAN_INTERVAL}. Careful of hitting Wyze servers rate limits.")
@@ -166,6 +168,8 @@ class WyzeVac(StateVacuumEntity):
             data["main_brush"] = MAIN_BRUSH_LIFETIME - int(self._main_brush)
         if self._side_brush is not None:
             data["side_brush"] = SIDE_BRUSH_LIFETIME - int(self._side_brush)
+        if self._rooms is not None:
+            data["rooms"] = self._rooms
 
         return data
 
@@ -295,6 +299,8 @@ class WyzeVac(StateVacuumEntity):
         self._side_brush = vacuum.side_brush
 
         self.get_last_map()
+
+        self._rooms = self.get_rooms(vacuum)
         
 
     def set_fan_speed(self, fan_speed, **kwargs):
@@ -334,3 +340,11 @@ class WyzeVac(StateVacuumEntity):
             urllib.request.urlretrieve(url, f"www/{DOMAIN}/vacuum_last_map.jpg")
         except:
             _LOGGER.warn("Failed to grab latest map image. Try again later.")
+
+    def get_rooms(self, vacuum):
+        rooms = []
+
+        for room in vacuum.current_map.rooms:
+            rooms.append(room.name)
+
+        return rooms
