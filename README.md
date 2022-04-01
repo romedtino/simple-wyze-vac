@@ -87,7 +87,7 @@ target:
 
 ## Implementing vacuum-card
 There's a lovely Lovelace vacuum-card [here](https://github.com/denysdovhan/vacuum-card) in which you can implement your vacuum like so:
-![image](https://user-images.githubusercontent.com/18567128/160922320-91a358cd-f7cf-4add-948b-65ecd17bbed3.png)
+![image](https://user-images.githubusercontent.com/18567128/161214101-2224e784-f770-42b3-8fed-fada75d753cc.png)
 
 Here is my YAML configuration of the card
 
@@ -169,7 +169,7 @@ map: camera.my_vacuum_map
 
 which should then show the last sweep map 
 
-![image](https://user-images.githubusercontent.com/18567128/160503574-bca392b3-7143-4d92-8d53-2a6ff40da388.png)
+![image](https://user-images.githubusercontent.com/18567128/161214208-b9de5906-ee86-4bce-97dc-f4a02a1fa15c.png)
 
 **TIP** - Wrap your vacuum card in a 'conditional' card and use the vacuum state of 'docked' to test if it is docked and undocked. This way, you can still have the vacuum logo and not the map when the vacuum is not running
 
