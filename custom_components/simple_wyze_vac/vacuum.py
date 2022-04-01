@@ -330,4 +330,7 @@ class WyzeVac(StateVacuumEntity):
             url = self._client.vacuums.get_sweep_records(device_mac=self._vac_mac, since=datetime.now())[0].map_img_big_url
 
         Path(f"www/{DOMAIN}").mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve(url, f"www/{DOMAIN}/vacuum_last_map.jpg")        
+        try:
+            urllib.request.urlretrieve(url, f"www/{DOMAIN}/vacuum_last_map.jpg")
+        except:
+            _LOGGER.warn("Failed to grab latest map image. Try again later.")
