@@ -251,7 +251,11 @@ class WyzeVac(StateVacuumEntity):
             """Perform a spot clean-up."""
             if "rooms" in params:
                 desired_rooms = params["rooms"]
-                self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in vacuum.current_map.rooms if room.name in desired_rooms])
+                rooms = vacuum.current_map.rooms
+                if rooms is None:
+                    _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
+                    return
+                self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in desired_rooms])
                 self.schedule_update_ha_state()
             else:
                 _LOGGER.warn("No rooms specified for vacuum. Cannot do spot clean")
