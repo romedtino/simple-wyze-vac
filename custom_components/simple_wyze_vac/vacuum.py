@@ -343,6 +343,9 @@ class WyzeVac(StateVacuumEntity):
 
     def get_rooms(self, vacuum):
         rooms = []
+        
+        if vacuum.current_map.rooms is None:
+          return rooms
 
         for room in vacuum.current_map.rooms:
             rooms.append(room.name)
