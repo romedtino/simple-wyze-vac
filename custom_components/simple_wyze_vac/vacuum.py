@@ -110,8 +110,6 @@ class WyzeVac(StateVacuumEntity):
         if self._polling:
             _LOGGER.warn(f"Simple Wyze Vac Polling every {SCAN_INTERVAL}. Careful of hitting Wyze servers rate limits.")
 
-        self.async_update()
-
     @property
     def device_info(self):
         """Return device registry information for this entity."""
@@ -188,79 +186,80 @@ class WyzeVac(StateVacuumEntity):
 
         return data
 
-    def get_new_client(self):
+    async def get_new_client(self):
         _LOGGER.warn("Refreshing Wyze Client. Do this sparingly to be prevent lockout.")
-        self._client = Client(email=self._username, password=self._password)
+        self._client = await self.hass.async_add_executor_job(lambda: Client(email=self._username, password=self._password))
 
-    def start(self, **kwargs):
+    async def async_start(self, **kwargs):
         try:
-            vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            self.get_new_client()
+            await self.get_new_client()
         finally:
-            self._client.vacuums.clean(device_mac=self._vac_mac, device_model=self._model)
+            await self.hass.async_add_executor_job(lambda: self._client.vacuums.clean(device_mac=self._vac_mac, device_model=self._model))
         
-        self.schedule_update_ha_state()
+        time.sleep(1)
+        self.async_schedule_update_ha_state()
 
-    def pause(self, **kwargs):
+    async def async_pause(self, **kwargs):
         """Stop the vacuum cleaner."""
         try:
-            vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            self.get_new_client()
+            await self.get_new_client()
         finally:
-            self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model)
+            await self.hass.async_add_executor_job(lambda: self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model))
         self._last_mode = STATE_PAUSED
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
 
-    def stop(self, **kwargs):
+    async def async_stop(self, **kwargs):
         """Stop the vacuum cleaner."""
         try:
-            vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            self.get_new_client()
+            await self.get_new_client()
         finally:
-            self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model)
+            await self.hass.async_add_executor_job(lambda: self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model))
         self._last_mode = STATE_PAUSED
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
 
-    def return_to_base(self, **kwargs):
+    async def async_return_to_base(self, **kwargs):
         """Set the vacuum cleaner to return to the dock."""
         try:
-           vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+           vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            self.get_new_client()
+            await self.get_new_client()
         finally:
-            self._client.vacuums.dock(device_mac=self._vac_mac, device_model=self._model)
+            await self.hass.async_add_executor_job(lambda: self._client.vacuums.dock(device_mac=self._vac_mac, device_model=self._model))
         self._last_mode = STATE_RETURNING
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
 
-    def locate(self, **kwargs):
+    async def async_locate(self, **kwargs):
         """Locate the vacuum cleaner."""
         _LOGGER.warn("Locate called. Not Implemented.")
         pass
 
-    def start_pause(self, **kwargs):
+    async def async_start_pause(self, **kwargs):
         """Start, pause or resume the cleaning task."""
         if self._last_mode in [ STATE_CLEANING, STATE_RETURNING]:
-            self.pause()
+            await self.pause()
         else:
-            self.start()
+            await self.start()
         
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
 
-    def send_command(self, command, params=None, **kwargs):
+    async def async_send_command(self, command, params=None, **kwargs):
         try:
-            vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            self.get_new_client()
+            await self.get_new_client()
         finally:
-            vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
         _LOGGER.info("Command: %s, params: %s", command, params)
         if command in "sweep_rooms":
             """Perform a spot clean-up."""
@@ -270,8 +269,8 @@ class WyzeVac(StateVacuumEntity):
                 if rooms is None:
                     _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
                     return
-                self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in desired_rooms])
-                self.schedule_update_ha_state()
+                await self.hass.async_add_executor_job(lambda: self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in desired_rooms]))
+                self.async_schedule_update_ha_state()
             else:
                 _LOGGER.warn("No rooms specified for vacuum. Cannot do spot clean")
         
@@ -280,25 +279,23 @@ class WyzeVac(StateVacuumEntity):
             if rooms is None:
                     _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
                     return
-            filtered_rooms = [name for name, val in self._room_manager.rooms if val]
-            self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in filtered_rooms])
-        
+            filtered_rooms = [name for name, val in self._room_manager.rooms.items() if val]
+            await self.hass.async_add_executor_job(lambda: self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in filtered_rooms]))
+
+            time.sleep(1)
+            self.async_schedule_update_ha_state(force_refresh=True)
         elif command in "update":
-            self.schedule_update_ha_state()
-            self.async_update()
+            self.async_schedule_update_ha_state(force_refresh=True)
+            # self.async_update()
             
         elif command in ["refresh_token", "get_new_client"]:
-            self.get_new_client()
+            await self.get_new_client()
         
         elif command in ["get_map", "get_last_map"]:
-            self.get_last_map()
+            await self.get_last_map()
         
         else:
             _LOGGER.warn(f"Unknown wyze vac command: {command}")
-
-    def update(self):
-        _LOGGER.warn("calling og update")
-        _LOGGER.warn(self._room_manager.rooms)
 
     async def async_update(self):
         _LOGGER.warn("calling update")
@@ -307,7 +304,7 @@ class WyzeVac(StateVacuumEntity):
             vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            self.get_new_client()
+            await self.get_new_client()
         finally:
             vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
 
@@ -334,9 +331,9 @@ class WyzeVac(StateVacuumEntity):
         self._main_brush = vacuum.main_brush
         self._side_brush = vacuum.side_brush
 
-        self.get_last_map()
+        await self.get_last_map()
 
-    def set_fan_speed(self, fan_speed, **kwargs):
+    async def async_set_fan_speed(self, fan_speed, **kwargs):
         """Set the vacuum's fan speed."""
         if self.supported_features & SUPPORT_FAN_SPEED == 0:
             return
@@ -350,37 +347,26 @@ class WyzeVac(StateVacuumEntity):
                 wyze_suction = VacuumSuctionLevel.STRONG
                 
             try:
-                vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+                vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
             except (WyzeApiError, WyzeClientNotConnectedError) as e:
                 _LOGGER.warn("Received WyzeApiError")
-                self.get_new_client()
+                await self.get_new_client()
             finally:
-                self._client.vacuums.set_suction_level(device_mac=self._vac_mac, device_model=self._model, suction_level=wyze_suction)
+                await self.hass.async_add_executor_job(lambda: self._client.vacuums.set_suction_level(device_mac=self._vac_mac, device_model=self._model, suction_level=wyze_suction))
             time.sleep(1) # It takes awhile for the suction level to update Wyze servers
-            self.schedule_update_ha_state()
+            self.async_schedule_update_ha_state()
     
-    def get_last_map(self):
+    async def get_last_map(self):
         try:
-            vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
-            self.get_new_client()
+            await self.get_new_client()
         finally:
-            url = self._client.vacuums.get_sweep_records(device_mac=self._vac_mac, since=datetime.now())[0].map_img_big_url
+            url = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_sweep_records(device_mac=self._vac_mac, since=datetime.now())[0].map_img_big_url)
 
         Path(f"www/{DOMAIN}").mkdir(parents=True, exist_ok=True)
         try:
-            urllib.request.urlretrieve(url, f"www/{DOMAIN}/vacuum_last_map.jpg")
+            await self.hass.async_add_executor_job(lambda: urllib.request.urlretrieve(url, f"www/{DOMAIN}/vacuum_last_map.jpg"))
         except:
             _LOGGER.warn("Failed to grab latest map image. Try again later.")
-
-    def get_rooms(self, vacuum):
-        rooms = []
-        
-        if vacuum.current_map.rooms is None:
-          return rooms
-
-        for room in vacuum.current_map.rooms:
-            rooms.append(room.name)
-
-        return rooms
