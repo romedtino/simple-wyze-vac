@@ -58,25 +58,27 @@ FAN_SPEEDS = [VacuumSuctionLevel.QUIET.describe(),
             VacuumSuctionLevel.STANDARD.describe(),
             VacuumSuctionLevel.STRONG.describe()]
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
-    
+async def async_setup_entry(hass, config_entry, async_add_entities):
+
     username = hass.data[WYZE_USERNAME]
     password = hass.data[WYZE_PASSWORD]
     polling = hass.data[CONF_POLLING]
 
+    client = hass.data[DOMAIN][config_entry.entry_id]
     global SCAN_INTERVAL
     if isinstance(hass.data[WYZE_SCAN_INTERVAL], timedelta):
         SCAN_INTERVAL = hass.data[WYZE_SCAN_INTERVAL]
-    else:
+    elif isinstance(hass.data[WYZE_SCAN_INTERVAL], str):
         t = datetime.strptime(hass.data[WYZE_SCAN_INTERVAL],"%H:%M:%S")
         SCAN_INTERVAL = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+    else:
+        SCAN_INTERVAL = timedelta(hours=2)
 
     vacs = []
     for pl in hass.data[WYZE_VACUUMS]:
-        vacs.append(WyzeVac(hass.data[WYZE_VAC_CLIENT], pl, username, password, polling))
+        vacs.append(WyzeVac(client, pl, username, password, polling))
 
-    add_entities(vacs)
-        
+    async_add_entities(vacs)
 
 
 class WyzeVac(StateVacuumEntity):
@@ -99,13 +101,26 @@ class WyzeVac(StateVacuumEntity):
 
         self._polling = polling
 
+        self._room_manager = pl["room_manager"]
         self._rooms = []
+        for name, stat in self._room_manager.rooms.items():
+            self._rooms.append(name)
 
         global SCAN_INTERVAL
         if self._polling:
             _LOGGER.warn(f"Simple Wyze Vac Polling every {SCAN_INTERVAL}. Careful of hitting Wyze servers rate limits.")
 
-        self.update()
+        self.async_update()
+
+    @property
+    def device_info(self):
+        """Return device registry information for this entity."""
+        return {
+            "identifiers": {(DOMAIN, self._name)},
+            "name": self._name,
+            "manufacturer": "Wyze Inc.",
+            "model": self._model,
+        }
 
     @property
     def unique_id(self) -> str:
@@ -259,25 +274,42 @@ class WyzeVac(StateVacuumEntity):
                 self.schedule_update_ha_state()
             else:
                 _LOGGER.warn("No rooms specified for vacuum. Cannot do spot clean")
+        
+        elif command in "sweep_auto":
+            rooms = vacuum.current_map.rooms
+            if rooms is None:
+                    _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
+                    return
+            filtered_rooms = [name for name, val in self._room_manager.rooms if val]
+            self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in filtered_rooms])
+        
         elif command in "update":
-            self.update()
             self.schedule_update_ha_state()
+            self.async_update()
+            
         elif command in ["refresh_token", "get_new_client"]:
             self.get_new_client()
+        
         elif command in ["get_map", "get_last_map"]:
             self.get_last_map()
+        
         else:
             _LOGGER.warn(f"Unknown wyze vac command: {command}")
 
     def update(self):
+        _LOGGER.warn("calling og update")
+        _LOGGER.warn(self._room_manager.rooms)
+
+    async def async_update(self):
+        _LOGGER.warn("calling update")
         # Get vacuum states
         try:
-            vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
             self.get_new_client()
         finally:
-            vacuum = self._client.vacuums.info(device_mac=self._vac_mac)
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
 
         # Get vacuum mode
         if vacuum.mode in [VacuumMode.SWEEPING]:
@@ -303,9 +335,6 @@ class WyzeVac(StateVacuumEntity):
         self._side_brush = vacuum.side_brush
 
         self.get_last_map()
-
-        self._rooms = self.get_rooms(vacuum)
-        
 
     def set_fan_speed(self, fan_speed, **kwargs):
         """Set the vacuum's fan speed."""
