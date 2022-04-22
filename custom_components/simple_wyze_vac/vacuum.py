@@ -90,7 +90,7 @@ class WyzeVac(StateVacuumEntity):
         self._fan_speed = pl["suction"]
         self._battery_level = pl["battery"]
 
-        self._filter = pl["battery"]
+        self._filter = pl["filter"]
         self._main_brush = pl["main_brush"]
         self._side_brush = pl["side_brush"]
 
