@@ -32,7 +32,7 @@ from wyze_sdk import Client
 _LOGGER = logging.getLogger(__name__)
 
 
-SCAN_INTERVAL = timedelta(minutes=60)
+SCAN_INTERVAL = timedelta(hours=4)
 
 CONFIG_SCHEMA = vol.Schema(
     {

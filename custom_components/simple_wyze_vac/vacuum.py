@@ -14,6 +14,7 @@ from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
 from wyze_sdk.errors import WyzeApiError, WyzeClientNotConnectedError
 from wyze_sdk import Client
 
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.components.vacuum import (
     PLATFORM_SCHEMA,
     SUPPORT_BATTERY,
@@ -65,25 +66,33 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     polling = hass.data[CONF_POLLING]
 
     client = hass.data[DOMAIN][config_entry.entry_id]
-    global SCAN_INTERVAL
+    
     if isinstance(hass.data[WYZE_SCAN_INTERVAL], timedelta):
-        SCAN_INTERVAL = hass.data[WYZE_SCAN_INTERVAL]
+        scan_interval = hass.data[WYZE_SCAN_INTERVAL]
     elif isinstance(hass.data[WYZE_SCAN_INTERVAL], str):
         t = datetime.strptime(hass.data[WYZE_SCAN_INTERVAL],"%H:%M:%S")
-        SCAN_INTERVAL = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+        scan_interval = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
     else:
-        SCAN_INTERVAL = timedelta(hours=2)
+        scan_interval = timedelta(hours=4)
 
     vacs = []
     for pl in hass.data[WYZE_VACUUMS]:
-        vacs.append(WyzeVac(client, pl, username, password, polling))
+        vacs.append(WyzeVac(client, pl, username, password, polling, scan_interval))
+
+    def refresh(event_time):
+        """Refresh"""
+        for vac in vacs:
+            vac.async_schedule_update_ha_state(force_refresh=True)
+
+    if polling:
+        async_track_time_interval(hass ,refresh, scan_interval)
 
     async_add_entities(vacs)
 
 
 class WyzeVac(StateVacuumEntity):
 
-    def __init__(self, client, pl, username, password, polling):
+    def __init__(self, client, pl, username, password, polling, scan_interval):
         self._client = client
         self._vac_mac = pl["mac"]
         self._model = pl["model"]
@@ -106,9 +115,12 @@ class WyzeVac(StateVacuumEntity):
         for name, stat in self._room_manager.rooms.items():
             self._rooms.append(name)
 
-        global SCAN_INTERVAL
+        self._force_update = False
+        self._last_update = datetime(1970,1,1)
+
+        self._scan_interval = scan_interval
         if self._polling:
-            _LOGGER.warn(f"Simple Wyze Vac Polling every {SCAN_INTERVAL}. Careful of hitting Wyze servers rate limits.")
+            _LOGGER.warn(f"Simple Wyze Vac Polling every {scan_interval}. Careful of hitting Wyze servers rate limits.")
 
     @property
     def device_info(self):
@@ -163,7 +175,7 @@ class WyzeVac(StateVacuumEntity):
     @property
     def should_poll(self) -> bool:
         """Return True if entity has to be polled for state."""
-        return self._polling
+        return False
     
     @property
     def battery_level(self):
@@ -285,6 +297,7 @@ class WyzeVac(StateVacuumEntity):
             time.sleep(1)
             self.async_schedule_update_ha_state(force_refresh=True)
         elif command in "update":
+            self._force_update = True
             self.async_schedule_update_ha_state(force_refresh=True)
             # self.async_update()
             
@@ -298,7 +311,12 @@ class WyzeVac(StateVacuumEntity):
             _LOGGER.warn(f"Unknown wyze vac command: {command}")
 
     async def async_update(self):
-        _LOGGER.warn("calling update")
+        cur_time = datetime.now()
+        if not self._force_update and self._polling and self._last_update.timestamp() + self._scan_interval.total_seconds() > cur_time.timestamp():
+            _LOGGER.warn(f"self._scan_interval is bugged? The last update was {self._last_update} which {self._scan_interval} hasn't passed. Not updating.")
+            _LOGGER.warn(f"Please reload this component.")
+            return
+
         # Get vacuum states
         try:
             vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
@@ -330,6 +348,10 @@ class WyzeVac(StateVacuumEntity):
         self._filter = vacuum.filter
         self._main_brush = vacuum.main_brush
         self._side_brush = vacuum.side_brush
+
+        self._last_update = cur_time
+
+        self._force_update = False
 
         await self.get_last_map()
 
