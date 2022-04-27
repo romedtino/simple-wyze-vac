@@ -85,7 +85,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             vac.async_schedule_update_ha_state(force_refresh=True)
 
     if polling:
-        async_track_time_interval(hass ,refresh, scan_interval)
+        config_entry.async_on_unload(async_track_time_interval(hass ,refresh, scan_interval))
 
     async_add_entities(vacs)
 
