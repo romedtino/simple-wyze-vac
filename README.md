@@ -34,14 +34,11 @@ By default, this integration **DOES NOT** automatically update your vacuum entit
 4. Add https://github.com/romedtino/simple-wyze-vac as an Integration
 5. Install/Add simple-wyze-vac
 6. Restart Home Assistant
-7. Edit your configuration.yaml and add
-```yaml
-simple_wyze_vac:
-  username: your_wyze_email@email.com
-  password: your_wyze_password
-```
-6. Verify your configuration file is valid
-7. Restart Home Assistant
+7. Navigate to `Configuration`
+8. Navigate to `Devices & Services`
+9. Click `ADD INTEGRATION` on the bottom right
+10. Select `Simple Wyze Vac`
+11. Enter your `username` and `password`
 
 If it all worked out, you should now have Wyze vacuum entity(ies)
 
@@ -50,10 +47,20 @@ If it all worked out, you should now have Wyze vacuum entity(ies)
 - Stop / Pause
 - Return to Base
 - Filter lifespan information (Main filter, main brush and side brush)
+- Room names as toggleable switches (For area cleaning)
 - Room names as vacuum attributes
 - Optional [Polling](#polling)
-- Room Clean (Must use serivce call) Example: ![image](https://user-images.githubusercontent.com/18567128/127786476-ec3dbfcd-66f4-40e6-bfe5-fda0edad191d.png)
+- Automatically run area cleaning ![image](https://user-images.githubusercontent.com/18567128/165417724-b3ef20af-381f-4135-9f6c-53f55310c50c.png) based on the rooms (switch entities provided by Simple Wyze Vac) that are 'ON'. For example, in the attached screenshot, invoking a `sweep_auto` will do an area cleaning of the Living Room.
+- ![image](https://user-images.githubusercontent.com/18567128/165418261-bed10bb4-472e-43d8-903f-fa1dff13bb06.png)
 
+```yaml
+service: vacuum.send_command
+data:
+  command: sweep_auto
+target:
+  entity_id: vacuum.theovac
+```
+- Manually designate area cleaning (Must use serivce call) Example: ![image](https://user-images.githubusercontent.com/18567128/127786476-ec3dbfcd-66f4-40e6-bfe5-fda0edad191d.png)
 ```yaml
 service: vacuum.send_command
 data:
@@ -65,7 +72,6 @@ data:
 target:
   entity_id: vacuum.theovac
 ```
-
 - Fan Speed control - `quiet` `standard` `strong` Example: ![image](https://user-images.githubusercontent.com/18567128/128625430-29f77538-b638-481e-8221-0e10ff8618a9.png)
 
 ```yaml
@@ -98,18 +104,11 @@ target:
 
 ## Polling
 
-To enable polling you can add these key/values in your configuration.yaml
+To enable polling
+1. Navigate to the Simple Wyze Vac `Devices & Services` page under `Configuration`
+2. Select `Configure` ![image](https://user-images.githubusercontent.com/18567128/165417969-f10f96c0-7db3-4539-9b5b-726541bb5275.png)
+3. Check `Enable polling` and provide the interval. The interval value is in `HH:MM:SS` format. For example `00:01:00` would poll every 1 minute.
 
-- `poll` - `True` or `False`, where `True` enables polling
-- `scan_interval` - Value in `HH:MM:SS`, setting this key/value without poll set to `True` does nothing
-
-```yaml
-simple_wyze_vac:
-  username: your_wyze_email@email.com
-  password: your_wyze_password
-  poll: True
-  scan_interval: "02:00:00"
-```
 
 ## Misc
 - Location is currently not supported but it is considered "supported" by HA so the button doesn't crash the component when using vacuum-card defaults if you use it.
