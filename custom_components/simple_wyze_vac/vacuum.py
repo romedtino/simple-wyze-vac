@@ -6,7 +6,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-from .const import WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, \
+from .const import CONF_TOTP, WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, \
                    DOMAIN, FILTER_LIFETIME, MAIN_BRUSH_LIFETIME, SIDE_BRUSH_LIFETIME, \
                    CONF_POLLING, WYZE_SCAN_INTERVAL
 
@@ -64,6 +64,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     username = hass.data[WYZE_USERNAME]
     password = hass.data[WYZE_PASSWORD]
     polling = hass.data[CONF_POLLING]
+    totp = hass.data[CONF_TOTP]
 
     client = hass.data[DOMAIN][config_entry.entry_id]
     
@@ -77,7 +78,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     vacs = []
     for pl in hass.data[WYZE_VACUUMS]:
-        vacs.append(WyzeVac(client, pl, username, password, polling, scan_interval))
+        vacs.append(WyzeVac(client, pl, username, password, totp, polling, scan_interval))
 
     def refresh(event_time):
         """Refresh"""
@@ -92,7 +93,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class WyzeVac(StateVacuumEntity):
 
-    def __init__(self, client, pl, username, password, polling, scan_interval):
+    def __init__(self, client, pl, username, password, totp, polling, scan_interval):
         self._client = client
         self._vac_mac = pl["mac"]
         self._model = pl["model"]
@@ -107,6 +108,7 @@ class WyzeVac(StateVacuumEntity):
 
         self._username = username
         self._password = password
+        self._totp = totp
 
         self._polling = polling
 
@@ -200,7 +202,7 @@ class WyzeVac(StateVacuumEntity):
 
     async def get_new_client(self):
         _LOGGER.warn("Refreshing Wyze Client. Do this sparingly to be prevent lockout.")
-        self._client = await self.hass.async_add_executor_job(lambda: Client(email=self._username, password=self._password))
+        self._client = await self.hass.async_add_executor_job(lambda: Client(email=self._username, password=self._password, totp_key=self._totp))
 
     async def async_start(self, **kwargs):
         try:

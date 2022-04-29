@@ -14,7 +14,7 @@ from homeassistant.const import (
 from .const import (
     DOMAIN,
     CONF_POLLING,
-    WYZE_SCAN_INTERVAL,
+    CONF_TOTP
 )
 
 from wyze_sdk import Client
@@ -26,7 +26,8 @@ SCAN_INTERVAL = timedelta(minutes=60)
 
 DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_USERNAME): str, 
-    vol.Required(CONF_PASSWORD): str
+    vol.Required(CONF_PASSWORD): str,
+    vol.Optional(CONF_TOTP, default=''): str,
 })
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -41,7 +42,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="already_configured")
 
             try:
-                client = await self.hass.async_add_executor_job(Client, user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
+                if not user_input[CONF_TOTP]:
+                    client = await self.hass.async_add_executor_job(Client, user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
+                else:
+                    client = await self.hass.async_add_executor_job(Client, user_input[CONF_USERNAME], user_input[CONF_PASSWORD], user_input[CONF_TOTP])
                 return self.async_create_entry(title="Simple Wyze Vac", data=user_input)
             except Exception:
                 _LOGGER.error("Failed to login Wyze servers.")

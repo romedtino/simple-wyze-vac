@@ -7,8 +7,7 @@
           "data": {
             "username": "Username",
             "password": "Password",
-            "poll": "Poll Wyze Servers",
-            "scan_interval": "HH:MM:SS"
+            "totp": "Base32 Key (NOT THE 6 DIGITS from your Authenticator) If you dont know what this is, please leave it blank."
           }
         }
       },

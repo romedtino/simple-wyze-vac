@@ -11,7 +11,8 @@
                 "title": "Wyze credentials",
                 "data": {
                     "username": "Username",
-                    "password": "Password"
+                    "password": "Password",
+                    "totp": "Base32 Key (NOT THE 6 DIGITS from your Authenticator) If you dont know what this is, please leave it blank."
                 }
             }
         }

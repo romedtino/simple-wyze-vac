@@ -17,6 +17,7 @@ from homeassistant.const import (
 )
 
 from .const import (
+    CONF_TOTP,
     DOMAIN, 
     WYZE_VAC_CLIENT, 
     WYZE_VACUUMS, 
@@ -31,30 +32,9 @@ from wyze_sdk import Client
 
 _LOGGER = logging.getLogger(__name__)
 
-
-SCAN_INTERVAL = timedelta(hours=4)
-
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_USERNAME): cv.string, 
-                vol.Required(CONF_PASSWORD): cv.string,
-                vol.Optional(CONF_POLLING, default=False): cv.boolean,
-                vol.Optional(CONF_SCAN_INTERVAL, default=SCAN_INTERVAL): cv.time_period
-            }
-        )
-        
-    },
-    extra=vol.ALLOW_EXTRA,
-)
-
-
 # List of platforms to support. There should be a matching .py file for each,
 # eg <cover.py> and <sensor.py>
 PLATFORMS: list[str] = ["vacuum", "switch"]
-
-
 
 async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Hello World from a config entry."""
@@ -62,16 +42,17 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     # with your actual devices.
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
+    totp = entry.data.get(CONF_TOTP) if entry.data.get(CONF_TOTP) else None
 
-    client = await hass.async_add_executor_job(Client, username, password)
+    client = await hass.async_add_executor_job(Client, username, password, totp)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = client
 
     hass.data[WYZE_VACUUMS] = []
 
-    # hass.data[WYZE_VAC_CLIENT] = client
     hass.data[WYZE_USERNAME] = username
     hass.data[WYZE_PASSWORD] = password
+    hass.data[CONF_TOTP] = totp
     hass.data[CONF_POLLING] = entry.options.get(CONF_POLLING)
     hass.data[WYZE_SCAN_INTERVAL] = entry.options.get(CONF_SCAN_INTERVAL)
 
