@@ -274,8 +274,8 @@ class WyzeVac(StateVacuumEntity):
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
             await self.get_new_client()
-        finally:
             vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
+            
         _LOGGER.info("Command: %s, params: %s", command, params)
         if command in "sweep_rooms":
             """Perform a spot clean-up."""
@@ -327,8 +327,7 @@ class WyzeVac(StateVacuumEntity):
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
             await self.get_new_client()
-        finally:
-            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))            
 
         # Get vacuum mode
         if vacuum.mode in [VacuumMode.SWEEPING]:
