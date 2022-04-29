@@ -9,26 +9,18 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
 
-    username = hass.data[WYZE_USERNAME]
-    password = hass.data[WYZE_PASSWORD]
-
-    client = hass.data[DOMAIN][config_entry.entry_id]
-
     room_list = []
     for pl in hass.data[WYZE_VACUUMS]:
         room_manager = pl["room_manager"]
         
         for room_name, stat in room_manager.rooms.items():
-            room_list.append(SWVRoomSwitch(client, username, password, pl, room_name))
+            room_list.append(SWVRoomSwitch(pl, room_name))
 
     if room_list:
         async_add_entities(room_list)
 
 class SWVRoomSwitch(SwitchEntity):
-    def __init__(self, client, username, password, pl, room_name):
-        self._client = client
-        self._username = username
-        self._password = password
+    def __init__(self, pl, room_name):
         self._room_name = room_name
         self._room_manager =  pl["room_manager"]
         self._name = pl["name"]
