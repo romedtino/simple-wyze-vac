@@ -2,9 +2,11 @@ import logging
 
 from datetime import timedelta
 from datetime import datetime
+from pathlib import Path
+
 import time
 import urllib.request
-from pathlib import Path
+import voluptuous as vol
 
 from .const import CONF_TOTP, WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, \
                    DOMAIN, FILTER_LIFETIME, MAIN_BRUSH_LIFETIME, SIDE_BRUSH_LIFETIME, \
@@ -14,6 +16,7 @@ from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
 from wyze_sdk.errors import WyzeApiError, WyzeClientNotConnectedError
 from wyze_sdk import Client
 
+from homeassistant.helpers import config_validation as cv, entity_platform, service
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.components.vacuum import (
     PLATFORM_SCHEMA,
@@ -89,6 +92,18 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         config_entry.async_on_unload(async_track_time_interval(hass ,refresh, scan_interval))
 
     async_add_entities(vacs, True)
+
+    platform = entity_platform.current_platform.get()
+
+    platform.async_register_entity_service(
+        "sweep_rooms",
+        vol.Schema({
+            vol.Required("entity_id"): cv.entity_ids,
+            vol.Required("rooms"): cv.entity_ids,
+        }),
+        "sweep_rooms_wrapper"
+    )
+
 
 
 class WyzeVac(StateVacuumEntity):
@@ -262,9 +277,9 @@ class WyzeVac(StateVacuumEntity):
     async def async_start_pause(self, **kwargs):
         """Start, pause or resume the cleaning task."""
         if self._last_mode in [ STATE_CLEANING, STATE_RETURNING]:
-            await self.pause()
+            await self.async_pause()
         else:
-            await self.start()
+            await self.async_start()
         
         self.async_schedule_update_ha_state(force_refresh=True)
 
@@ -280,30 +295,17 @@ class WyzeVac(StateVacuumEntity):
         if command in "sweep_rooms":
             """Perform a spot clean-up."""
             if "rooms" in params:
-                desired_rooms = params["rooms"]
-                rooms = vacuum.current_map.rooms
-                if rooms is None:
-                    _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
-                    return
-                await self.hass.async_add_executor_job(lambda: self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in desired_rooms]))
-                
-                self.async_schedule_update_ha_state(force_refresh=True)
+                await self.sweep_rooms(params["rooms"])
             else:
                 _LOGGER.warn("No rooms specified for vacuum. Cannot do spot clean")
         
         elif command in "sweep_auto":
-            rooms = vacuum.current_map.rooms
-            if rooms is None:
-                    _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
-                    return
             filtered_rooms = [name for name, val in self._room_manager.rooms.items() if val]
-            await self.hass.async_add_executor_job(lambda: self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in filtered_rooms]))
+            await self.sweep_rooms(filtered_rooms)
 
-            self.async_schedule_update_ha_state(force_refresh=True)
         elif command in "update":
             self._force_update = True
             self.async_schedule_update_ha_state(force_refresh=True)
-            # self.async_update()
             
         elif command in ["refresh_token", "get_new_client"]:
             await self.get_new_client()
@@ -394,3 +396,36 @@ class WyzeVac(StateVacuumEntity):
             await self.hass.async_add_executor_job(lambda: urllib.request.urlretrieve(url, f"www/{DOMAIN}/vacuum_last_map.jpg"))
         except:
             _LOGGER.warn("Failed to grab latest map image. Try again later.")
+
+    async def sweep_rooms(self, target_rooms=None):
+        try:
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
+        except (WyzeApiError, WyzeClientNotConnectedError) as e:
+            _LOGGER.warn("Received WyzeApiError")
+            await self.get_new_client()
+            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
+
+        rooms = vacuum.current_map.rooms
+        if rooms is None:
+            _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
+            return
+
+        if target_rooms:
+            await self.hass.async_add_executor_job(lambda: self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in target_rooms]))
+            self.async_schedule_update_ha_state(force_refresh=True)
+        else:
+            await self.async_start()
+        
+    async def sweep_rooms_wrapper(self, rooms):
+        for room in self._room_manager.rooms.keys():
+            self._room_manager.rooms[room] = False
+
+        target_rooms = []
+        for entry in rooms:
+            name = self.hass.states.get(entry).attributes['room_name']
+            target_rooms.append(name)
+            self._room_manager.rooms[name] = True
+
+        await self.sweep_rooms(target_rooms)
+
+        self.async_schedule_update_ha_state(force_refresh=True)

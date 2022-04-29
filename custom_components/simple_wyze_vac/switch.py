@@ -61,6 +61,16 @@ class SWVRoomSwitch(SwitchEntity):
     def is_on(self):
         return self._room_manager.rooms[self._room_name]
 
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes of the vacuum cleaner."""
+        data = {}
+
+        if self._room_name is not None:
+            data["room_name"] = self._room_name
+
+        return data
+
     def turn_on(self, **kwargs) -> None:
         self._room_manager.set(self._room_name)
 

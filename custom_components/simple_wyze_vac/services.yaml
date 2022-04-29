@@ -1,0 +1,23 @@
+sweep_rooms:
+  name: Sweep Rooms
+  description: Sweep the rooms marked as enabled
+  fields:
+    entity_id:
+      name: Wyze Vacuum
+      description: Wyze vacuum to run a room sweep with
+      example: vacuum.wyze_vacuum
+      required: true
+      selector:
+        entity:
+          integration: simple_wyze_vac
+          domain: vacuum
+    rooms:
+      name: Rooms
+      description: List of available rooms to clean
+      required: true
+      example: switch.swv_living_room
+      selector:
+        entity:
+          integration: simple_wyze_vac
+          domain: switch
+          multiple: true
