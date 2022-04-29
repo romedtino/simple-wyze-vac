@@ -49,6 +49,7 @@ If it all worked out, you should now have Wyze vacuum entity(ies)
 - Stop / Pause
 - Return to Base
 - Filter lifespan information (Main filter, main brush and side brush)
+- Camera entity to show last vacuum map
 - Room names as toggleable switches (For area cleaning)
 - Room names as vacuum attributes
 - Optional [Polling](#polling)
@@ -193,19 +194,10 @@ mode: single
 ```
 
 ### Adding map to vacuum card
-There is support for at least showing the last sweep map. To add it add a camera entity like shown below:
+There is support for at showing the last sweep map. With the exposed camera entity, in your vacuum-card (if you're using it) you can add `camera.{vacuum_name}_camera` e.g.
 
 ```
-camera:
-- platform: local_file
-  file_path: /config/www/simple_wyze_vac/vacuum_last_map.jpg
-  name: "My Vaccuum Map"
-```
-
-With a camera entity, in your vacuum-card (if you're using it) you can add
-
-```
-map: camera.my_vacuum_map
+map: camera.wyzevac_camera
 
 ```
 
