@@ -52,7 +52,19 @@ If it all worked out, you should now have Wyze vacuum entity(ies)
 - Room names as toggleable switches (For area cleaning)
 - Room names as vacuum attributes
 - Optional [Polling](#polling)
-- Automatically run area cleaning ![image](https://user-images.githubusercontent.com/18567128/165417724-b3ef20af-381f-4135-9f6c-53f55310c50c.png) based on the rooms (switch entities provided by Simple Wyze Vac) that are 'ON'. For example, in the attached screenshot, invoking a `sweep_auto` will do an area cleaning of the Living Room.
+- Sweep Rooms as a service using `simple_wyze_vac.sweep_rooms` or `vacuum.send_command` with command `sweep_auto`
+  - Using built-in service and choosing the switch entities/rooms you want to do a sweep
+    ![image](https://user-images.githubusercontent.com/18567128/166072534-58fb8999-c328-4220-9a73-99fe312e1192.png)
+    or in YAML
+    ```yaml
+    service: simple_wyze_vac.sweep_rooms
+    data:
+      entity_id: vacuum.theovac
+      rooms:
+        - switch.swv_kitchen
+        - switch.swv_entryway
+    ```
+  - Using `sweep_auto` - Automatically run area cleaning ![image](https://user-images.githubusercontent.com/18567128/165417724-b3ef20af-381f-4135-9f6c-53f55310c50c.png) based on the rooms (switch entities provided by Simple Wyze Vac) that are 'ON'. For example, in the attached screenshot, invoking a `sweep_auto` will do an area cleaning of the Living Room.
 - ![image](https://user-images.githubusercontent.com/18567128/165418261-bed10bb4-472e-43d8-903f-fa1dff13bb06.png)
 
 ```yaml
