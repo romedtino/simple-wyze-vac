@@ -7,6 +7,7 @@
   * [Supported Features](#supported-features)
   * [Polling](#polling)
   * [Misc](#misc)
+  * [TOTP[(#totp)
   * [Implementing vacuum-card](#implementing-vacuum-card)
     + [Adding map to vacuum card](#adding-map-to-vacuum-card)
   * [Shoutouts](#shoutouts)
@@ -25,7 +26,7 @@ By default, this integration **DOES NOT** automatically update your vacuum entit
 ## Prerequisites
 - Home Assistant 😅
 - [HACS](https://hacs.xyz/) Installed in Home Assistant
-- Wyze Account without 2FA - Tip: Create a new account that you share just the vacuum with that doesn't have 2FA enabled.
+- Wyze Account (either with 2FA disabled or TOTP authentication setup when integrating Simple Wyze Vac. Note: This is NOT the same thing as the 6 digit code you get from your Authenticator app. Please see [TOTP](#totp) section)
 
 ## Installation
 1. On Home Assistant go to HACS -> Integration
@@ -43,6 +44,7 @@ By default, this integration **DOES NOT** automatically update your vacuum entit
 If it all worked out, you should now have Wyze vacuum entity(ies)
 
 ## Supported Features
+- TOTP (Note: This is NOT the same thing as the 6 digit code you get from your Authenticator app. Please see [TOTP](#totp) section)
 - Start
 - Stop / Pause
 - Return to Base
@@ -239,6 +241,21 @@ view_layout:
   position: sidebar
 
 ```
+
+## TOTP
+
+`wyze_sdk` implemented support for using TOTP (Time-Based One-Time Password). Specifically, [mintotp](https://github.com/susam/mintotp) which works great! 
+
+### How to Setup TOTP
+
+1. If you already have 2FA setup on your Wyze account you will have to reapply it. If you already have Simple Wyze Vac integrated, you will have to remove it and readd it.
+  1. To remove it, navigate to the Wyze app and go - `Accounts -> Security -> Two-Factor Authentication` and remove verification
+2. Back in `Accounts -> Security -> Two-Factor Authentication`, select Verification by Authenticator app.
+3. Read the instructions from Wyze BUT make sure to copy and KEEP the value in step 3. This is your Base32 SECRET used to generate TOTP.
+4. Go ahead and setup your TOTP on the Authenticator of your choosing.
+5. Re-add `Simple Wyze Vac` under `Add Integration` of Home Assistant.
+6. Enter your `username`, `password` and for TOTP, copy the Base32 SECRET you got from the Wyze app
+7. `Submit` and you should now be authenticated with 2FA enabled!
 
 
 ## Shoutouts
