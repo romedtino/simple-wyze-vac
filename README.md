@@ -7,7 +7,7 @@
   * [Supported Features](#supported-features)
   * [Polling](#polling)
   * [Misc](#misc)
-  * [TOTP[(#totp)
+  * [TOTP](#totp)
   * [Implementing vacuum-card](#implementing-vacuum-card)
     + [Adding map to vacuum card](#adding-map-to-vacuum-card)
   * [Shoutouts](#shoutouts)
