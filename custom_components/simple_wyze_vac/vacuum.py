@@ -88,7 +88,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     if polling:
         config_entry.async_on_unload(async_track_time_interval(hass ,refresh, scan_interval))
 
-    async_add_entities(vacs)
+    async_add_entities(vacs, True)
 
 
 class WyzeVac(StateVacuumEntity):
@@ -213,8 +213,7 @@ class WyzeVac(StateVacuumEntity):
         finally:
             await self.hass.async_add_executor_job(lambda: self._client.vacuums.clean(device_mac=self._vac_mac, device_model=self._model))
         
-        time.sleep(1)
-        self.async_schedule_update_ha_state()
+        self.async_schedule_update_ha_state(force_refresh=True)
 
     async def async_pause(self, **kwargs):
         """Stop the vacuum cleaner."""
@@ -226,7 +225,8 @@ class WyzeVac(StateVacuumEntity):
         finally:
             await self.hass.async_add_executor_job(lambda: self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model))
         self._last_mode = STATE_PAUSED
-        self.async_schedule_update_ha_state()
+
+        self.async_schedule_update_ha_state(force_refresh=True)
 
     async def async_stop(self, **kwargs):
         """Stop the vacuum cleaner."""
@@ -238,7 +238,8 @@ class WyzeVac(StateVacuumEntity):
         finally:
             await self.hass.async_add_executor_job(lambda: self._client.vacuums.pause(device_mac=self._vac_mac, device_model=self._model))
         self._last_mode = STATE_PAUSED
-        self.async_schedule_update_ha_state()
+
+        self.async_schedule_update_ha_state(force_refresh=True)
 
     async def async_return_to_base(self, **kwargs):
         """Set the vacuum cleaner to return to the dock."""
@@ -250,7 +251,8 @@ class WyzeVac(StateVacuumEntity):
         finally:
             await self.hass.async_add_executor_job(lambda: self._client.vacuums.dock(device_mac=self._vac_mac, device_model=self._model))
         self._last_mode = STATE_RETURNING
-        self.async_schedule_update_ha_state()
+
+        self.async_schedule_update_ha_state(force_refresh=True)
 
     async def async_locate(self, **kwargs):
         """Locate the vacuum cleaner."""
@@ -264,7 +266,7 @@ class WyzeVac(StateVacuumEntity):
         else:
             await self.start()
         
-        self.async_schedule_update_ha_state()
+        self.async_schedule_update_ha_state(force_refresh=True)
 
     async def async_send_command(self, command, params=None, **kwargs):
         try:
@@ -284,7 +286,8 @@ class WyzeVac(StateVacuumEntity):
                     _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
                     return
                 await self.hass.async_add_executor_job(lambda: self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in desired_rooms]))
-                self.async_schedule_update_ha_state()
+                
+                self.async_schedule_update_ha_state(force_refresh=True)
             else:
                 _LOGGER.warn("No rooms specified for vacuum. Cannot do spot clean")
         
@@ -296,7 +299,6 @@ class WyzeVac(StateVacuumEntity):
             filtered_rooms = [name for name, val in self._room_manager.rooms.items() if val]
             await self.hass.async_add_executor_job(lambda: self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in filtered_rooms]))
 
-            time.sleep(1)
             self.async_schedule_update_ha_state(force_refresh=True)
         elif command in "update":
             self._force_update = True
@@ -377,8 +379,7 @@ class WyzeVac(StateVacuumEntity):
                 await self.get_new_client()
             finally:
                 await self.hass.async_add_executor_job(lambda: self._client.vacuums.set_suction_level(device_mac=self._vac_mac, device_model=self._model, suction_level=wyze_suction))
-            time.sleep(1) # It takes awhile for the suction level to update Wyze servers
-            self.async_schedule_update_ha_state()
+            self.async_schedule_update_ha_state(force_refresh=True)
     
     async def get_last_map(self):
         try:
