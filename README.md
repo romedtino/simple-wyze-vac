@@ -7,6 +7,7 @@
   * [Supported Features](#supported-features)
   * [Polling](#polling)
   * [Misc](#misc)
+  * [TOTP](#totp)
   * [Implementing vacuum-card](#implementing-vacuum-card)
     + [Adding map to vacuum card](#adding-map-to-vacuum-card)
   * [Shoutouts](#shoutouts)
@@ -25,7 +26,7 @@ By default, this integration **DOES NOT** automatically update your vacuum entit
 ## Prerequisites
 - Home Assistant 😅
 - [HACS](https://hacs.xyz/) Installed in Home Assistant
-- Wyze Account without 2FA - Tip: Create a new account that you share just the vacuum with that doesn't have 2FA enabled.
+- Wyze Account (either with 2FA disabled or TOTP authentication setup when integrating Simple Wyze Vac. Note: This is NOT the same thing as the 6 digit code you get from your Authenticator app. Please see [TOTP](#totp) section)
 
 ## Installation
 1. On Home Assistant go to HACS -> Integration
@@ -34,26 +35,47 @@ By default, this integration **DOES NOT** automatically update your vacuum entit
 4. Add https://github.com/romedtino/simple-wyze-vac as an Integration
 5. Install/Add simple-wyze-vac
 6. Restart Home Assistant
-7. Edit your configuration.yaml and add
-```yaml
-simple_wyze_vac:
-  username: your_wyze_email@email.com
-  password: your_wyze_password
-```
-6. Verify your configuration file is valid
-7. Restart Home Assistant
+7. Navigate to `Configuration`
+8. Navigate to `Devices & Services`
+9. Click `ADD INTEGRATION` on the bottom right
+10. Select `Simple Wyze Vac`
+11. Enter your `username` and `password`
 
 If it all worked out, you should now have Wyze vacuum entity(ies)
 
 ## Supported Features
+- TOTP (Note: This is NOT the same thing as the 6 digit code you get from your Authenticator app. Please see [TOTP](#totp) section)
 - Start
 - Stop / Pause
 - Return to Base
 - Filter lifespan information (Main filter, main brush and side brush)
+- Camera entity to show last vacuum map
+- Room names as toggleable switches (For area cleaning)
 - Room names as vacuum attributes
 - Optional [Polling](#polling)
-- Room Clean (Must use serivce call) Example: ![image](https://user-images.githubusercontent.com/18567128/127786476-ec3dbfcd-66f4-40e6-bfe5-fda0edad191d.png)
+- Sweep Rooms as a service using `simple_wyze_vac.sweep_rooms` or `vacuum.send_command` with command `sweep_auto`
+  - Using built-in service and choosing the switch entities/rooms you want to do a sweep
+    ![image](https://user-images.githubusercontent.com/18567128/166072534-58fb8999-c328-4220-9a73-99fe312e1192.png)
+    or in YAML
+    ```yaml
+    service: simple_wyze_vac.sweep_rooms
+    data:
+      entity_id: vacuum.theovac
+      rooms:
+        - switch.swv_kitchen
+        - switch.swv_entryway
+    ```
+  - Using `sweep_auto` - Automatically run area cleaning ![image](https://user-images.githubusercontent.com/18567128/165417724-b3ef20af-381f-4135-9f6c-53f55310c50c.png) based on the rooms (switch entities provided by Simple Wyze Vac) that are 'ON'. For example, in the attached screenshot, invoking a `sweep_auto` will do an area cleaning of the Living Room.
+- ![image](https://user-images.githubusercontent.com/18567128/165418261-bed10bb4-472e-43d8-903f-fa1dff13bb06.png)
 
+```yaml
+service: vacuum.send_command
+data:
+  command: sweep_auto
+target:
+  entity_id: vacuum.theovac
+```
+- Manually designate area cleaning (Must use serivce call) Example: ![image](https://user-images.githubusercontent.com/18567128/127786476-ec3dbfcd-66f4-40e6-bfe5-fda0edad191d.png)
 ```yaml
 service: vacuum.send_command
 data:
@@ -65,7 +87,6 @@ data:
 target:
   entity_id: vacuum.theovac
 ```
-
 - Fan Speed control - `quiet` `standard` `strong` Example: ![image](https://user-images.githubusercontent.com/18567128/128625430-29f77538-b638-481e-8221-0e10ff8618a9.png)
 
 ```yaml
@@ -98,18 +119,11 @@ target:
 
 ## Polling
 
-To enable polling you can add these key/values in your configuration.yaml
+To enable polling
+1. Navigate to the Simple Wyze Vac `Devices & Services` page under `Configuration`
+2. Select `Configure` ![image](https://user-images.githubusercontent.com/18567128/165417969-f10f96c0-7db3-4539-9b5b-726541bb5275.png)
+3. Check `Enable polling` and provide the interval. The interval value is in `HH:MM:SS` format. For example `00:01:00` would poll every 1 minute.
 
-- `poll` - `True` or `False`, where `True` enables polling
-- `scan_interval` - Value in `HH:MM:SS`, setting this key/value without poll set to `True` does nothing
-
-```yaml
-simple_wyze_vac:
-  username: your_wyze_email@email.com
-  password: your_wyze_password
-  poll: True
-  scan_interval: "02:00:00"
-```
 
 ## Misc
 - Location is currently not supported but it is considered "supported" by HA so the button doesn't crash the component when using vacuum-card defaults if you use it.
@@ -180,19 +194,10 @@ mode: single
 ```
 
 ### Adding map to vacuum card
-There is support for at least showing the last sweep map. To add it add a camera entity like shown below:
+There is support for at showing the last sweep map. With the exposed camera entity, in your vacuum-card (if you're using it) you can add `camera.{vacuum_name}_camera` e.g.
 
 ```
-camera:
-- platform: local_file
-  file_path: /config/www/simple_wyze_vac/vacuum_last_map.jpg
-  name: "My Vaccuum Map"
-```
-
-With a camera entity, in your vacuum-card (if you're using it) you can add
-
-```
-map: camera.my_vacuum_map
+map: camera.wyzevac_camera
 
 ```
 
@@ -240,6 +245,21 @@ view_layout:
   position: sidebar
 
 ```
+
+## TOTP
+
+`wyze_sdk` implemented support for using TOTP (Time-Based One-Time Password). Specifically, [mintotp](https://github.com/susam/mintotp) which works great! 
+
+### How to Setup TOTP
+
+1. If you already have 2FA setup on your Wyze account you will have to reapply it. If you already have Simple Wyze Vac integrated, you will have to remove it and readd it.
+  1. To remove it, navigate to the Wyze app and go - `Accounts -> Security -> Two-Factor Authentication` and remove verification
+2. Back in `Accounts -> Security -> Two-Factor Authentication`, select Verification by Authenticator app.
+3. Read the instructions from Wyze BUT make sure to copy and KEEP the value in step 3. This is your Base32 SECRET used to generate TOTP.
+4. Go ahead and setup your TOTP on the Authenticator of your choosing.
+5. Re-add `Simple Wyze Vac` under `Add Integration` of Home Assistant.
+6. Enter your `username`, `password` and for TOTP, copy the Base32 SECRET you got from the Wyze app
+7. `Submit` and you should now be authenticated with 2FA enabled!
 
 
 ## Shoutouts

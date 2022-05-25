@@ -1,0 +1,32 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Simple Wyze Vac already configured."
+          },
+        "error": {
+            "auth_error": "Problems logging in. Please verify your username and password."
+        },
+        "step": {
+            "user": {
+                "title": "Wyze credentials",
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "totp": "Base32 Key (NOT THE 6 DIGITS from your Authenticator) If you dont know what this is, please leave it blank."
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Simple Wyze Vac Options",
+                "data": {
+                  "poll": "Enable polling (True/False)",
+                  "scan_interval": "HH:MM:SS"
+                }
+            }
+        }
+    },
+    "title": "Simple Wyze Vac"
+}
