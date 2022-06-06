@@ -68,6 +68,8 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
 
         if vac_info.current_map.rooms is not None:
             room_manager = SWVRoomManager(vac_info.current_map.rooms)
+        else:
+            room_manager = SWVRoomManager({})
 
         payload = {
             "mac": device.mac,
