@@ -66,8 +66,14 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
 
         vac_info = await hass.async_add_executor_job(lambda: client.vacuums.info(device_mac=device.mac))
 
-        if vac_info.current_map.rooms is not None:
-            room_manager = SWVRoomManager(vac_info.current_map.rooms)
+        try:
+            if vac_info.current_map.rooms is not None:
+                room_manager = SWVRoomManager(vac_info.current_map.rooms)
+            else:
+                room_manager = SWVRoomManager({})
+        except Exception as err:
+            _LOGGER.warn("Failed to query vacuum rooms. If your firmware is higher than 1.6.113, rooms is currently not supported. Exception: " +  str(err))
+            room_manager = SWVRoomManager({})
 
         payload = {
             "mac": device.mac,

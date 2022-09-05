@@ -405,7 +405,12 @@ class WyzeVac(StateVacuumEntity):
             await self.get_new_client()
             vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
 
-        rooms = vacuum.current_map.rooms
+        try:
+            rooms = vacuum.current_map.rooms
+        except Exception as err:
+            _LOGGER.warn("Exception caught querying available vacuum rooms. Unable to decipher rooms. Exception: " + str(err))
+            rooms = None
+            
         if rooms is None:
             _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
             return
