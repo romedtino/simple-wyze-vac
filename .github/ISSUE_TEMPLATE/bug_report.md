@@ -29,7 +29,7 @@ If it helps describe your issue, add screenshots to help explain your problem.
 **Wyze Vacuum Firmware Version**
 -
 
-** Home Assistant Version **
+**Home Assistant Version**
 -
 
 **Additional context**
