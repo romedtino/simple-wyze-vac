@@ -72,7 +72,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
             else:
                 room_manager = SWVRoomManager({})
         except Exception as err:
-            _LOGGER.warn("Failed to query vacuum rooms. If your firmware is higher than 1.6.113, rooms is currently not supported. Exception: ", err)
+            _LOGGER.warn("Failed to query vacuum rooms. If your firmware is higher than 1.6.113, rooms is currently not supported. Exception: " +  str(err))
             room_manager = SWVRoomManager({})
 
         payload = {

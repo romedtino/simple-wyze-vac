@@ -408,7 +408,7 @@ class WyzeVac(StateVacuumEntity):
         try:
             rooms = vacuum.current_map.rooms
         except Exception as err:
-            _LOGGER.warn("Exception caught querying available vacuum rooms. Unable to decipher rooms. Exception: ", err)
+            _LOGGER.warn("Exception caught querying available vacuum rooms. Unable to decipher rooms. Exception: " + str(err))
             rooms = None
             
         if rooms is None:
