@@ -23,6 +23,9 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If it helps describe your issue, add screenshots to help explain your problem.
 
+**Simple Wyze Vac Version**
+-
+
 **Wyze Vacuum Firmware Version**
 -
 
