@@ -391,8 +391,8 @@ class WyzeVac(StateVacuumEntity):
         finally:
             url = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_sweep_records(device_mac=self._vac_mac, since=datetime.now())[0].map_img_big_url)
 
-        Path(f"www/{DOMAIN}").mkdir(parents=True, exist_ok=True)
         try:
+            Path(f"www/{DOMAIN}").mkdir(parents=True, exist_ok=True)
             await self.hass.async_add_executor_job(lambda: urllib.request.urlretrieve(url, f"www/{DOMAIN}/{self._name}_last_map.jpg"))
         except:
             _LOGGER.warn("Failed to grab latest map image. Try again later.")
