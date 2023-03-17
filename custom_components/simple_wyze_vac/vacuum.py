@@ -9,7 +9,7 @@ import urllib.request
 import voluptuous as vol
 
 from .const import CONF_TOTP, WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, \
-                   DOMAIN, FILTER_LIFETIME, MAIN_BRUSH_LIFETIME, SIDE_BRUSH_LIFETIME, \
+                   DOMAIN, \
                    CONF_POLLING, WYZE_SCAN_INTERVAL
 
 from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
@@ -205,11 +205,11 @@ class WyzeVac(StateVacuumEntity):
         data = {}
 
         if self._filter is not None:
-            data["filter"] = FILTER_LIFETIME - int(self._filter)
+            data["filter"] = int(self._filter)
         if self._main_brush is not None:
-            data["main_brush"] = MAIN_BRUSH_LIFETIME - int(self._main_brush)
+            data["main_brush"] = int(self._main_brush)
         if self._side_brush is not None:
-            data["side_brush"] = SIDE_BRUSH_LIFETIME - int(self._side_brush)
+            data["side_brush"] = int(self._side_brush)
         if self._rooms is not None:
             data["rooms"] = self._rooms
 
@@ -350,9 +350,9 @@ class WyzeVac(StateVacuumEntity):
         self._fan_speed = vacuum.clean_level.describe()
 
         # Update filter information
-        self._filter = vacuum.filter
-        self._main_brush = vacuum.main_brush
-        self._side_brush = vacuum.side_brush
+        self._filter = vacuum.supplies.filter.remaining
+        self._main_brush = vacuum.supplies.main_brush.remaining
+        self._side_brush = vacuum.supplies.side_brush.remaining
 
         self._last_update = cur_time
 
