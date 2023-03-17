@@ -389,7 +389,12 @@ class WyzeVac(StateVacuumEntity):
             _LOGGER.warn("Received WyzeApiError")
             await self.get_new_client()
         finally:
-            url = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_sweep_records(device_mac=self._vac_mac, since=datetime.now())[0].map_img_big_url)
+            maps = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_maps(device_mac=self._vac_mac))
+            url = None
+            for map in maps:
+                # Grab current map
+                if map.is_current:
+                    url = map.img_url
 
         try:
             Path(f"www/{DOMAIN}").mkdir(parents=True, exist_ok=True)
@@ -398,22 +403,21 @@ class WyzeVac(StateVacuumEntity):
             _LOGGER.warn("Failed to grab latest map image. Try again later.")
 
     async def sweep_rooms(self, target_rooms=None):
+        rooms = []
         try:
-            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
+            map_info = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_maps(device_mac=self._vac_mac))
+            for map_sum in map_info:
+                rooms = rooms + map_sum.rooms
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
             await self.get_new_client()
-            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
-
-        try:
-            rooms = vacuum.current_map.rooms
-        except Exception as err:
-            _LOGGER.warn("Exception caught querying available vacuum rooms. Unable to decipher rooms. Exception: " + str(err))
-            rooms = None
+            map_info = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_maps(device_mac=self._vac_mac))
+            for map_sum in map_info:
+                rooms = rooms + map_sum.rooms
             
-        if rooms is None:
-            _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
-            return
+        if not rooms:
+            _LOGGER.warn("No rooms from Wyze servers. Failed to grab any rooms from any existing maps.")
+            rooms = None
 
         if target_rooms:
             await self.hass.async_add_executor_job(lambda: self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in target_rooms]))
