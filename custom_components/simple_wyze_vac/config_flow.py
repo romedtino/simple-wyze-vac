@@ -43,9 +43,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             try:
                 if not user_input[CONF_TOTP]:
-                    client = await self.hass.async_add_executor_job(Client, user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
+                    client = await self.hass.async_add_executor_job(Client, None, None, user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
                 else:
-                    client = await self.hass.async_add_executor_job(Client, user_input[CONF_USERNAME], user_input[CONF_PASSWORD], user_input[CONF_TOTP])
+                    client = await self.hass.async_add_executor_job(Client, None, None, user_input[CONF_USERNAME], user_input[CONF_PASSWORD], user_input[CONF_TOTP])
                 return self.async_create_entry(title="Simple Wyze Vac", data=user_input)
             except Exception:
                 _LOGGER.error("Failed to login Wyze servers.")

@@ -9,7 +9,7 @@ import urllib.request
 import voluptuous as vol
 
 from .const import CONF_TOTP, WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, \
-                   DOMAIN, FILTER_LIFETIME, MAIN_BRUSH_LIFETIME, SIDE_BRUSH_LIFETIME, \
+                   DOMAIN, \
                    CONF_POLLING, WYZE_SCAN_INTERVAL
 
 from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
@@ -205,11 +205,11 @@ class WyzeVac(StateVacuumEntity):
         data = {}
 
         if self._filter is not None:
-            data["filter"] = FILTER_LIFETIME - int(self._filter)
+            data["filter"] = int(self._filter)
         if self._main_brush is not None:
-            data["main_brush"] = MAIN_BRUSH_LIFETIME - int(self._main_brush)
+            data["main_brush"] = int(self._main_brush)
         if self._side_brush is not None:
-            data["side_brush"] = SIDE_BRUSH_LIFETIME - int(self._side_brush)
+            data["side_brush"] = int(self._side_brush)
         if self._rooms is not None:
             data["rooms"] = self._rooms
 
@@ -350,9 +350,9 @@ class WyzeVac(StateVacuumEntity):
         self._fan_speed = vacuum.clean_level.describe()
 
         # Update filter information
-        self._filter = vacuum.filter
-        self._main_brush = vacuum.main_brush
-        self._side_brush = vacuum.side_brush
+        self._filter = vacuum.supplies.filter.remaining
+        self._main_brush = vacuum.supplies.main_brush.remaining
+        self._side_brush = vacuum.supplies.side_brush.remaining
 
         self._last_update = cur_time
 
@@ -389,7 +389,12 @@ class WyzeVac(StateVacuumEntity):
             _LOGGER.warn("Received WyzeApiError")
             await self.get_new_client()
         finally:
-            url = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_sweep_records(device_mac=self._vac_mac, since=datetime.now())[0].map_img_big_url)
+            maps = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_maps(device_mac=self._vac_mac))
+            url = None
+            for map in maps:
+                # Grab current map
+                if map.is_current:
+                    url = map.img_url
 
         try:
             Path(f"www/{DOMAIN}").mkdir(parents=True, exist_ok=True)
@@ -398,22 +403,21 @@ class WyzeVac(StateVacuumEntity):
             _LOGGER.warn("Failed to grab latest map image. Try again later.")
 
     async def sweep_rooms(self, target_rooms=None):
+        rooms = []
         try:
-            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
+            map_info = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_maps(device_mac=self._vac_mac))
+            for map_sum in map_info:
+                rooms = rooms + map_sum.rooms
         except (WyzeApiError, WyzeClientNotConnectedError) as e:
             _LOGGER.warn("Received WyzeApiError")
             await self.get_new_client()
-            vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
-
-        try:
-            rooms = vacuum.current_map.rooms
-        except Exception as err:
-            _LOGGER.warn("Exception caught querying available vacuum rooms. Unable to decipher rooms. Exception: " + str(err))
-            rooms = None
+            map_info = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_maps(device_mac=self._vac_mac))
+            for map_sum in map_info:
+                rooms = rooms + map_sum.rooms
             
-        if rooms is None:
-            _LOGGER.warn("No rooms from Wyze servers. You may have the unsupported multi-floor firmware. Sweep rooms currently does not work on this firmware.")
-            return
+        if not rooms:
+            _LOGGER.warn("No rooms from Wyze servers. Failed to grab any rooms from any existing maps.")
+            rooms = None
 
         if target_rooms:
             await self.hass.async_add_executor_job(lambda: self._client.vacuums.sweep_rooms(device_mac=self._vac_mac, room_ids=[room.id for room in rooms if room.name in target_rooms]))

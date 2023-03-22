@@ -45,7 +45,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     password = entry.data.get(CONF_PASSWORD)
     totp = entry.data.get(CONF_TOTP) if entry.data.get(CONF_TOTP) else None
 
-    client = await hass.async_add_executor_job(Client, username, password, totp)
+    client = await hass.async_add_executor_job(Client, None, None, username, password, totp)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = client
 
@@ -68,10 +68,14 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
         vac_info = await hass.async_add_executor_job(lambda: client.vacuums.info(device_mac=device.mac))
 
         try:
-            if vac_info.current_map.rooms is not None:
-                room_manager = SWVRoomManager(vac_info.current_map.rooms)
-            else:
-                room_manager = SWVRoomManager({})
+            rooms = []
+            maps = await hass.async_add_executor_job(lambda: client.vacuums.get_maps(device_mac=device.mac))
+            room_manager = SWVRoomManager({})
+            for map in maps:
+                if map.rooms:
+                    rooms = rooms + map.rooms
+            room_manager = SWVRoomManager(rooms)
+                    
         except Exception as err:
             _LOGGER.warn("Failed to query vacuum rooms. If your firmware is higher than 1.6.113, rooms is currently not supported. Exception: " +  str(err))
             room_manager = SWVRoomManager({})
@@ -82,9 +86,9 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
             "name": device.nickname,
             "suction": vac_info.clean_level.describe(),
             "battery": vac_info.voltage,
-            "filter": vac_info.filter,
-            "main_brush": vac_info.main_brush,
-            "side_brush": vac_info.side_brush,
+            "filter": vac_info.supplies.filter.remaining,
+            "main_brush": vac_info.supplies.main_brush.remaining,
+            "side_brush": vac_info.supplies.side_brush.remaining,
             "room_manager": room_manager
         }
 

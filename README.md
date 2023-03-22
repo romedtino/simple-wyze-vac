@@ -14,7 +14,7 @@
 
 ## General
 
-Simple implementation of the Wyze Vacuum right into Home Assistant. 
+Simple implementation of the Wyze Vacuum right into Home Assistant. I have only tested this against the official firmware version - **1.6.202** If you run into issues against a different firmware **please be extra descriptive of the problem when filing an issue.**
 
 **NOTE** 
 
