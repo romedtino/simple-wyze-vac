@@ -332,11 +332,11 @@ class WyzeVac(StateVacuumEntity):
             vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))            
 
         # Get vacuum mode
-        if vacuum.mode in [VacuumMode.SWEEPING]:
+        if vacuum.mode in [VacuumMode.SWEEPING, VacuumMode.CLEANING]:
             self._last_mode = STATE_CLEANING
         elif vacuum.mode in [VacuumMode.IDLE, VacuumMode.BREAK_POINT]:
             self._last_mode = STATE_DOCKED
-        elif vacuum.mode in [VacuumMode.ON_WAY_CHARGE, VacuumMode.FULL_FINISH_SWEEPING_ON_WAY_CHARGE]:
+        elif vacuum.mode in [VacuumMode.ON_WAY_CHARGE, VacuumMode.FULL_FINISH_SWEEPING_ON_WAY_CHARGE, VacuumMode.FINISHED_RETURNING_TO_CHARGE, VacuumMode.RETURNING_TO_CHARGE]:
             self._last_mode = STATE_RETURNING
         elif vacuum.mode in [VacuumMode.PAUSE]:
             self._last_mode = STATE_PAUSED
