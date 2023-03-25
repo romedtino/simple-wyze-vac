@@ -312,6 +312,12 @@ class WyzeVac(StateVacuumEntity):
         
         elif command in ["get_map", "get_last_map"]:
             await self.get_last_map()
+
+        elif command in ["set_map", "set_current_map"]:
+            if "map" in params:
+                await self.set_current_map(params["map"])
+            else:
+                _LOGGER.warn("No map specified for vacuum.")
         
         else:
             _LOGGER.warn(f"Unknown wyze vac command: {command}")
@@ -401,6 +407,29 @@ class WyzeVac(StateVacuumEntity):
             await self.hass.async_add_executor_job(lambda: urllib.request.urlretrieve(url, f"www/{DOMAIN}/{self._name}_last_map.jpg"))
         except:
             _LOGGER.warn("Failed to grab latest map image. Try again later.")
+
+    async def set_current_map(self, target_map=None):
+        target_map_id = None
+        try:
+            map_info = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_maps(device_mac=self._vac_mac))
+            for map_sum in map_info:
+                if map_sum.name == target_map:
+                    target_map_id = map_sum.id
+                    break
+        except (WyzeApiError, WyzeClientNotConnectedError) as e:
+            _LOGGER.warn("Received WyzeApiError")
+            await self.get_new_client()
+            map_info = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_maps(device_mac=self._vac_mac))
+            for map_sum in map_info:
+                if map_sum.name == target_map:
+                    target_map_id = map_sum.id
+                    break
+
+        if target_map_id:
+            await self.hass.async_add_executor_job(lambda: self._client.vacuums.set_current_map(device_mac=self._vac_mac, map_id=target_map_id))
+            self.async_schedule_update_ha_state(force_refresh=True)
+        else:
+            _LOGGER.warn(f"No matching map named {target_map}")
 
     async def sweep_rooms(self, target_rooms=None):
         rooms = []
