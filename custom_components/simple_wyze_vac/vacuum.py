@@ -314,7 +314,7 @@ class WyzeVac(StateVacuumEntity):
             await self.get_last_map()
 
         elif command in ["set_map", "set_current_map"]:
-            if "map" in params:
+            if params and "map" in params:
                 await self.set_current_map(params["map"])
             else:
                 _LOGGER.warn("No map specified for vacuum.")
@@ -408,7 +408,7 @@ class WyzeVac(StateVacuumEntity):
         except:
             _LOGGER.warn("Failed to grab latest map image. Try again later.")
 
-    async def set_current_map(self, target_map=None):
+    async def set_current_map(self, target_map):
         target_map_id = None
         try:
             map_info = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_maps(device_mac=self._vac_mac))
