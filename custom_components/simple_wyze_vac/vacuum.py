@@ -338,13 +338,13 @@ class WyzeVac(StateVacuumEntity):
             vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))            
 
         # Get vacuum mode
-        if vacuum.mode in [VacuumMode.SWEEPING, VacuumMode.CLEANING]:
+        if vacuum.mode in [VacuumMode.SWEEPING, VacuumMode.CLEANING, VacuumMode.QUICK_MAPPING_MAPPING]:
             self._last_mode = STATE_CLEANING
-        elif vacuum.mode in [VacuumMode.IDLE, VacuumMode.BREAK_POINT]:
+        elif vacuum.mode in [VacuumMode.IDLE, VacuumMode.BREAK_POINT, VacuumMode.DOCKED_NOT_COMPLETE, VacuumMode.QUICK_MAPPING_DOCKED_NOT_COMPLETE]:
             self._last_mode = STATE_DOCKED
-        elif vacuum.mode in [VacuumMode.ON_WAY_CHARGE, VacuumMode.FULL_FINISH_SWEEPING_ON_WAY_CHARGE, VacuumMode.FINISHED_RETURNING_TO_CHARGE, VacuumMode.RETURNING_TO_CHARGE]:
+        elif vacuum.mode in [VacuumMode.ON_WAY_CHARGE, VacuumMode.FULL_FINISH_SWEEPING_ON_WAY_CHARGE, VacuumMode.FINISHED_RETURNING_TO_CHARGE, VacuumMode.RETURNING_TO_CHARGE, VacuumMode.QUICK_MAPPING_COMPLETED_RETURNING_TO_CHARGE]:
             self._last_mode = STATE_RETURNING
-        elif vacuum.mode in [VacuumMode.PAUSE]:
+        elif vacuum.mode in [VacuumMode.PAUSED, VacuumMode.PAUSE, VacuumMode.QUICK_MAPPING_PAUSED]:
             self._last_mode = STATE_PAUSED
         else:
             self._last_mode = STATE_ERROR
@@ -396,11 +396,20 @@ class WyzeVac(StateVacuumEntity):
             await self.get_new_client()
         finally:
             maps = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_maps(device_mac=self._vac_mac))
-            url = None
+            
+        latest = None
+        try:
+            latest = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_sweep_records(device_mac=self._vac_mac, since=datetime.now())[0])
+        except:
+            _LOGGER.warn("Could not grab latest map, will use maps from maps list")
+        url = None
+        if not latest:
             for map in maps:
-                # Grab current map
+            # Grab current map
                 if map.is_current:
                     url = map.img_url
+        else:
+            url = latest.map_img_big_url
 
         try:
             Path(f"www/{DOMAIN}").mkdir(parents=True, exist_ok=True)
