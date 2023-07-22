@@ -14,11 +14,13 @@ from homeassistant.helpers import discovery
 from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
+    CONF_API_KEY,
     CONF_SCAN_INTERVAL
 )
 
 from .const import (
     CONF_TOTP,
+    CONF_KEY_ID,
     DOMAIN, 
     WYZE_VAC_CLIENT, 
     WYZE_VACUUMS, 
@@ -43,9 +45,11 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     # with your actual devices.
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
+    key_id = entry.data.get(CONF_KEY_ID)
+    api_key = entry.data.get(CONF_PASSWORD)
     totp = entry.data.get(CONF_TOTP) if entry.data.get(CONF_TOTP) else None
 
-    client = await hass.async_add_executor_job(Client, None, None, username, password, totp)
+    client = await hass.async_add_executor_job(Client, None, None, username, password, key_id, api_key, totp)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = client
 
@@ -53,6 +57,8 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
 
     hass.data[WYZE_USERNAME] = username
     hass.data[WYZE_PASSWORD] = password
+    hass.data[CONF_KEY_ID] = key_id
+    hass.data[CONF_API_KEY] = api_key
     hass.data[CONF_TOTP] = totp
     hass.data[CONF_POLLING] = entry.options.get(CONF_POLLING)
     hass.data[WYZE_SCAN_INTERVAL] = entry.options.get(CONF_SCAN_INTERVAL)

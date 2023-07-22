@@ -8,13 +8,15 @@ from homeassistant import config_entries
 from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
+    CONF_API_KEY,
     CONF_SCAN_INTERVAL,
 )
 
 from .const import (
     DOMAIN,
     CONF_POLLING,
-    CONF_TOTP
+    CONF_TOTP,
+    CONF_KEY_ID
 )
 
 from wyze_sdk import Client
@@ -27,12 +29,14 @@ SCAN_INTERVAL = timedelta(minutes=60)
 DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_USERNAME): str, 
     vol.Required(CONF_PASSWORD): str,
+    vol.Required(CONF_KEY_ID): str,
+    vol.Required(CONF_API_KEY): str,
     vol.Optional(CONF_TOTP, default=''): str,
 })
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     
-    VERSION = 1
+    VERSION = 2
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
     async def async_step_user(self, user_input=None):
@@ -43,9 +47,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             try:
                 if not user_input[CONF_TOTP]:
-                    client = await self.hass.async_add_executor_job(Client, None, None, user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
+                    client = await self.hass.async_add_executor_job(Client, None, None, user_input[CONF_USERNAME], user_input[CONF_PASSWORD], user_input[CONF_KEY_ID], user_input[CONF_API_KEY])
                 else:
-                    client = await self.hass.async_add_executor_job(Client, None, None, user_input[CONF_USERNAME], user_input[CONF_PASSWORD], user_input[CONF_TOTP])
+                    client = await self.hass.async_add_executor_job(Client, None, None, user_input[CONF_USERNAME], user_input[CONF_PASSWORD], user_input[CONF_KEY_ID], user_input[CONF_API_KEY], user_input[CONF_TOTP])
                 return self.async_create_entry(title="Simple Wyze Vac", data=user_input)
             except Exception:
                 _LOGGER.error("Failed to login Wyze servers.")
