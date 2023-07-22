@@ -27,6 +27,7 @@ By default, this integration **DOES NOT** automatically update your vacuum entit
 - Home Assistant 😅
 - [HACS](https://hacs.xyz/) Installed in Home Assistant
 - Wyze Account (either with 2FA disabled or TOTP authentication setup when integrating Simple Wyze Vac. Note: This is NOT the same thing as the 6 digit code you get from your Authenticator app. Please see [TOTP](#totp) section)
+- Generate a Wyze Developer API key at [Wyze Developer Page](https://developer-api-console.wyze.com/#/apikey/view) to receive a `key_id` and an `api_key`
 
 ## Installation
 1. On Home Assistant go to HACS -> Integration
@@ -39,7 +40,7 @@ By default, this integration **DOES NOT** automatically update your vacuum entit
 8. Navigate to `Devices & Services`
 9. Click `ADD INTEGRATION` on the bottom right
 10. Select `Simple Wyze Vac`
-11. Enter your `username` and `password`
+11. Enter your `username`, `password`, `key_id` and `api_key` (optionaly, the TOTP value see [TOTP](#totp) section)
 
 If it all worked out, you should now have Wyze vacuum entity(ies)
 
@@ -258,7 +259,7 @@ view_layout:
 3. Read the instructions from Wyze BUT make sure to copy and KEEP the value in step 3. This is your Base32 SECRET used to generate TOTP.
 4. Go ahead and setup your TOTP on the Authenticator of your choosing.
 5. Re-add `Simple Wyze Vac` under `Add Integration` of Home Assistant.
-6. Enter your `username`, `password` and for TOTP, copy the Base32 SECRET you got from the Wyze app
+6. Enter your `username`, `password`, `key_id`, `api_key` and for TOTP, copy the Base32 SECRET you got from the Wyze app
 7. `Submit` and you should now be authenticated with 2FA enabled!
 
 
