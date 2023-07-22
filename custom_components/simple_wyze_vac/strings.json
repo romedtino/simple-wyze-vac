@@ -7,6 +7,8 @@
           "data": {
             "username": "Username",
             "password": "Password",
+            "key_id": "Wyze API Key ID",
+            "api_key": "Wyze API Auth Key",
             "totp": "Base32 Key (NOT THE 6 DIGITS from your Authenticator) If you dont know what this is, please leave it blank."
           }
         }

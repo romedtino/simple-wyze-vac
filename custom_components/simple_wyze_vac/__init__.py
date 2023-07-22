@@ -46,7 +46,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
     key_id = entry.data.get(CONF_KEY_ID)
-    api_key = entry.data.get(CONF_PASSWORD)
+    api_key = entry.data.get(CONF_API_KEY)
     totp = entry.data.get(CONF_TOTP) if entry.data.get(CONF_TOTP) else None
 
     client = await hass.async_add_executor_job(Client, None, None, username, password, key_id, api_key, totp)
