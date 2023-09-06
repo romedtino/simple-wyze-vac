@@ -5,11 +5,21 @@
   * [Prerequisites](#prerequisites)
   * [Installation](#installation)
   * [Supported Features](#supported-features)
+  * [Services](#services)
+    + [Sweep Rooms](#sweep-rooms)
+      - [Using sweep rooms](#using-sweep-rooms)
+      - [Using sweep auto](#using-sweep-auto)
+      - [Manually designate area cleaning](#manually-designate-area-cleaning)
+    + [Fan Speed control](#fan-speed-control)
+    + [Update status](#update-status)
+    + [Refresh Login Token](#refresh-login-token)
+    + [Set Current Map](#set-current-map)
   * [Polling](#polling)
   * [Misc](#misc)
-  * [TOTP](#totp)
   * [Implementing vacuum-card](#implementing-vacuum-card)
     + [Adding map to vacuum card](#adding-map-to-vacuum-card)
+  * [TOTP](#totp)
+    + [How to Setup TOTP](#how-to-setup-totp)
   * [Shoutouts](#shoutouts)
 
 ## General
@@ -53,30 +63,52 @@ If it all worked out, you should now have Wyze vacuum entity(ies)
 - Camera entity to show last vacuum map
 - Room names as toggleable switches (For area cleaning)
 - Room names as vacuum attributes
+- Battery Level
 - Optional [Polling](#polling)
-- Sweep Rooms as a service using `simple_wyze_vac.sweep_rooms` or `vacuum.send_command` with command `sweep_auto`
-  - Using built-in service and choosing the switch entities/rooms you want to do a sweep
-    ![image](https://user-images.githubusercontent.com/18567128/166072534-58fb8999-c328-4220-9a73-99fe312e1192.png)
-    or in YAML
-    ```yaml
-    service: simple_wyze_vac.sweep_rooms
-    data:
-      entity_id: vacuum.theovac
-      rooms:
-        - switch.swv_kitchen
-        - switch.swv_entryway
-    ```
-  - Using `sweep_auto` - Automatically run area cleaning ![image](https://user-images.githubusercontent.com/18567128/165417724-b3ef20af-381f-4135-9f6c-53f55310c50c.png) based on the rooms (switch entities provided by Simple Wyze Vac) that are 'ON'. For example, in the attached screenshot, invoking a `sweep_auto` will do an area cleaning of the Living Room.
-- ![image](https://user-images.githubusercontent.com/18567128/165418261-bed10bb4-472e-43d8-903f-fa1dff13bb06.png)
+
+## Services
+Simple Wyze Vac has a few available service commands.
+
+### Sweep Rooms
+There are three options to sweep rooms - `simple_wyze_vac.sweep_rooms`, `sweep_auto` or `sweep_rooms`. See details below.
+
+#### Using sweep rooms
+Using built-in service and choosing the switch entities/rooms you want to do a sweep
+![image](https://user-images.githubusercontent.com/18567128/166072534-58fb8999-c328-4220-9a73-99fe312e1192.png)
+or in YAML
+```yaml
+service: simple_wyze_vac.sweep_rooms
+data:
+  entity_id: vacuum.YOUR_VACUUM_NAME_HERE
+  rooms:
+    - switch.swv_kitchen
+    - switch.swv_entryway
+```
+    
+#### Using sweep auto 
+
+Automatically run area cleaning 
+
+![image](https://user-images.githubusercontent.com/18567128/165417724-b3ef20af-381f-4135-9f6c-53f55310c50c.png) 
+
+based on the rooms (switch entities provided by Simple Wyze Vac) that are `ON`. For example, in the attached screenshot, invoking a `sweep_auto` will do an area cleaning of the Living Room.
+
+![image](https://user-images.githubusercontent.com/18567128/165418261-bed10bb4-472e-43d8-903f-fa1dff13bb06.png)
 
 ```yaml
 service: vacuum.send_command
 data:
   command: sweep_auto
 target:
-  entity_id: vacuum.theovac
+  entity_id: vacuum.YOUR_VACUUM_NAME_HERE
 ```
-- Manually designate area cleaning (Must use serivce call) Example: ![image](https://user-images.githubusercontent.com/18567128/127786476-ec3dbfcd-66f4-40e6-bfe5-fda0edad191d.png)
+#### Manually designate area cleaning
+
+(Must use serivce call)
+Example: 
+
+![image](https://user-images.githubusercontent.com/18567128/127786476-ec3dbfcd-66f4-40e6-bfe5-fda0edad191d.png)
+
 ```yaml
 service: vacuum.send_command
 data:
@@ -86,37 +118,64 @@ data:
       - Hallway
       - Kitchen
 target:
-  entity_id: vacuum.theovac
+  entity_id: vacuum.YOUR_VACUUM_NAME_HERE
 ```
-- Fan Speed control - `quiet` `standard` `strong` Example: ![image](https://user-images.githubusercontent.com/18567128/128625430-29f77538-b638-481e-8221-0e10ff8618a9.png)
+
+### Fan Speed control 
+
+Options are `quiet` `standard` `strong` 
+
+Example: ![image](https://user-images.githubusercontent.com/18567128/128625430-29f77538-b638-481e-8221-0e10ff8618a9.png)
 
 ```yaml
 service: vacuum.set_fan_speed
 data:
   fan_speed: quiet
 target:
-  entity_id: vacuum.your_vac
+  entity_id: vacuum.YOUR_VACUUM_NAME_HERE
 ```
-- Battery Level
-- Update status - Since the integration no longer polls, you can query the status of the vacuum by sending a custom command `update`
+
+### Update status 
+
+Since the integration no longer polls, you can query the status of the vacuum by sending a custom command `update`
 
 ```yaml
 service: vacuum.send_command
 data:
   command: update
 target:
-  entity_id: vacuum.theovac
+  entity_id: vacuum.YOUR_VACUUM_NAME_HERE
 ```
 
-- Refresh Login Token - You can also refresh the login token if it has been awhile since you queried status and your login token has expired
+### Refresh Login Token
+
+You can also refresh the login token if it has been awhile since you queried status and your login token has expired
 
 ```yaml
 service: vacuum.send_command
 data:
   command: refresh_token
 target:
-  entity_id: vacuum.theovac
+  entity_id: vacuum.YOUR_VACUUM_NAME_HERE
 ```
+
+### Set Current Map
+With multi-room support, it is possible to use send a service command to switch rooms
+
+Example: 
+
+![image](https://user-images.githubusercontent.com/18567128/266158349-c3e76825-3556-431a-af74-57cbbadc46c9.png)
+
+```yaml
+service: vacuum.send_command
+data:
+  command: set_current_map
+  params:
+    map: YOUR MAP NAME HERE
+target:
+  entity_id: vacuum.YOUR_VACUUM_NAME_HERE
+```
+
 
 ## Polling
 
