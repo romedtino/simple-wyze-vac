@@ -8,7 +8,7 @@ import time
 import urllib.request
 import voluptuous as vol
 
-from .const import CONF_TOTP, WYZE_VAC_CLIENT, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, \
+from .const import CONF_TOTP, WYZE_VACUUMS, WYZE_USERNAME, WYZE_PASSWORD, \
                    DOMAIN, \
                    CONF_POLLING, WYZE_SCAN_INTERVAL, CONF_KEY_ID, CONF_API_KEY
 
@@ -16,44 +16,30 @@ from wyze_sdk.models.devices import VacuumMode, VacuumSuctionLevel
 from wyze_sdk.errors import WyzeApiError, WyzeClientNotConnectedError
 from wyze_sdk import Client
 
-from homeassistant.helpers import config_validation as cv, entity_platform, service
+from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.components.vacuum import (
-    PLATFORM_SCHEMA,
-    SUPPORT_BATTERY,
-    # SUPPORT_CLEAN_SPOT,
-    SUPPORT_FAN_SPEED,
-    SUPPORT_LOCATE,
-    SUPPORT_RETURN_HOME,
-    SUPPORT_SEND_COMMAND,
-    SUPPORT_STATUS,
-    SUPPORT_STOP,
-    SUPPORT_START,
-    SUPPORT_MAP,
-    # SUPPORT_TURN_OFF,
-    # SUPPORT_TURN_ON,
-    STATES,
     STATE_CLEANING,
     STATE_DOCKED,
     STATE_RETURNING,
     STATE_ERROR,
     STATE_PAUSED,
-    StateVacuumEntity
+    StateVacuumEntity,
+    VacuumEntityFeature,
 )
 
 SUPPORT_WYZE = (
-    SUPPORT_BATTERY |
-    # SUPPORT_CLEAN_SPOT |
-    SUPPORT_MAP |
-    SUPPORT_FAN_SPEED |
-    SUPPORT_LOCATE |
-    SUPPORT_RETURN_HOME |
-    SUPPORT_SEND_COMMAND |
-    SUPPORT_STATUS |
-    SUPPORT_STOP |
-    SUPPORT_START 
-    # SUPPORT_TURN_OFF |
-    # SUPPORT_TURN_ON
+    VacuumEntityFeature.BATTERY |
+    VacuumEntityFeature.CLEAN_SPOT |
+    VacuumEntityFeature.FAN_SPEED |
+    VacuumEntityFeature.LOCATE |
+    VacuumEntityFeature.MAP |
+    VacuumEntityFeature.PAUSE |
+    VacuumEntityFeature.RETURN_HOME |
+    VacuumEntityFeature.SEND_COMMAND |
+    VacuumEntityFeature.START |
+    VacuumEntityFeature.STOP |
+    VacuumEntityFeature.STATE 
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -372,7 +358,7 @@ class WyzeVac(StateVacuumEntity):
 
     async def async_set_fan_speed(self, fan_speed, **kwargs):
         """Set the vacuum's fan speed."""
-        if self.supported_features & SUPPORT_FAN_SPEED == 0:
+        if self.supported_features & VacuumEntityFeature.FAN_SPEED == 0:
             return
 
         if fan_speed in self.fan_speed_list:
