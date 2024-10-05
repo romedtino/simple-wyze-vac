@@ -85,10 +85,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     platform.async_register_entity_service(
         "sweep_rooms",
-        vol.Schema({
-            vol.Required("entity_id"): cv.entity_ids,
-            vol.Required("rooms"): cv.entity_ids,
-        }),
+        vol.Schema(cv.make_entity_service_schema({"entry_id": cv.entity_ids, "rooms": cv.entity_ids})),
         "sweep_rooms_wrapper"
     )
 
@@ -126,8 +123,10 @@ class WyzeVac(StateVacuumEntity):
         self._last_update = datetime(1970,1,1)
 
         self._scan_interval = scan_interval
+        global SCAN_INTERVAL
+        SCAN_INTERVAL = self._scan_interval
         if self._polling:
-            _LOGGER.warn(f"Simple Wyze Vac Polling every {scan_interval}. Careful of hitting Wyze servers rate limits.")
+            _LOGGER.warn(f"Simple Wyze Vac Polling every {scan_interval} ({SCAN_INTERVAL}). Careful of hitting Wyze servers rate limits.")
 
     @property
     def device_info(self):
@@ -182,7 +181,7 @@ class WyzeVac(StateVacuumEntity):
     @property
     def should_poll(self) -> bool:
         """Return True if entity has to be polled for state."""
-        return False
+        return self._polling
     
     @property
     def battery_level(self):
