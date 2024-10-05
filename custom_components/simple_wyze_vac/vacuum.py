@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from datetime import timedelta
@@ -74,7 +75,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     def refresh(event_time):
         """Refresh"""
         for vac in vacs:
-            vac.async_schedule_update_ha_state(force_refresh=True)
+            vac.schedule_update_ha_state(force_refresh=True)
 
     if polling:
         config_entry.async_on_unload(async_track_time_interval(hass ,refresh, scan_interval))
@@ -314,9 +315,12 @@ class WyzeVac(StateVacuumEntity):
     async def async_update(self):
         cur_time = datetime.now()
         if not self._force_update and self._polling and self._last_update.timestamp() + self._scan_interval.total_seconds() > cur_time.timestamp():
-            _LOGGER.warn(f"self._scan_interval is bugged? The last update was {self._last_update} which {self._scan_interval} hasn't passed. Not updating.")
-            _LOGGER.warn(f"Please reload this component.")
+            _LOGGER.debug(f"self._scan_interval is bugged? The last update was {self._last_update} which {self._scan_interval}({SCAN_INTERVAL}) hasn't passed. Not updating.")
+            _LOGGER.debug(f"Please reload this component.")
+            await asyncio.sleep(1)
             return
+        
+        _LOGGER.debug(f"Updating now {self._last_update}")
 
         # Get vacuum states
         try:
