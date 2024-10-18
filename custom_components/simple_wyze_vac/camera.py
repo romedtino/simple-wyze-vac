@@ -23,18 +23,18 @@ class SWVCamera(LocalFile):
 
     @property
     def name(self):
-        return self._name + " Camera"
+        return self._attr_name + " Camera"
 
     @property
     def unique_id(self):
-        return "swv_" + self._name + "_camera"
+        return "swv_" + self._attr_name + "_camera"
 
     @property
     def device_info(self):
         """Return device registry information for this entity."""
         return {
-            "identifiers": {(DOMAIN, self._name)},
-            "name": self._name,
+            "identifiers": {(DOMAIN, self._attr_name)},
+            "name": self._attr_name,
             "manufacturer": "Wyze Inc.",
             "model": self._model,
         }

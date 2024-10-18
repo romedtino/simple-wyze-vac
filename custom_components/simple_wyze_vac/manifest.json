@@ -7,5 +7,5 @@
   "iot_class": "cloud_polling",
   "name": "Simple Wyze Vacuum",
   "requirements": ["https://github.com/romedtino/wyze-sdk/archive/refs/tags/10.4.1.zip#wyze-sdk==10.4.1"],
-  "version": "1.9.0"
+  "version": "1.9.1"
 }
