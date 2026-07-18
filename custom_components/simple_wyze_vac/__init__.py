@@ -2,6 +2,10 @@ import logging
 import voluptuous as vol
 import asyncio
 
+import ssl
+import tempfile
+import urllib.request
+
 from datetime import timedelta
 from functools import lru_cache
 
@@ -73,15 +77,27 @@ def _patch_wyze_sdk_ssl() -> str | None:
         )
         return None
 
+    context = ssl._create_unverified_context()
+    with urllib.request.urlopen("https://cacerts.digicert.com/DigiCertGlobalRootCA.crt.pem", context=context) as response:
+        cert_data = response.read().decode('utf-8')
+
+    with open(bundle, 'r') as f:
+        base_bundle = f.read()
+
+    with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.pem') as temp_bundle:
+        temp_bundle.write(base_bundle + '\n' + cert_data)
+        temp_bundle_path = temp_bundle.name
+
+
     original_do_request = wyze_base.BaseServiceClient._do_request
 
     def _do_request_with_system_ca(self, session, request):
-        session.verify = bundle
+        session.verify = temp_bundle_path
         return original_do_request(self, session, request)
 
     wyze_base.BaseServiceClient._do_request = _do_request_with_system_ca
-    _LOGGER.info("Routed wyze_sdk SSL verification through system CA bundle: %s", bundle)
-    return bundle
+    _LOGGER.info("Routed wyze_sdk SSL verification through system CA bundle: %s", temp_bundle_path)
+    return temp_bundle_path
 
 
 async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> bool:
