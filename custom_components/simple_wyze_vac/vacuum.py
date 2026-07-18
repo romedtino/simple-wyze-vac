@@ -100,6 +100,10 @@ class WyzeVac(StateVacuumEntity):
         self._filter = pl["filter"]
         self._main_brush = pl["main_brush"]
         self._side_brush = pl["side_brush"]
+        
+        self._last_clean_size = None
+        self._last_clean_duration = None
+        self._last_cleaned = None
 
         self._username = username
         self._password = password
@@ -193,6 +197,12 @@ class WyzeVac(StateVacuumEntity):
             data["side_brush"] = int(self._side_brush)
         if self._rooms is not None:
             data["rooms"] = self._rooms
+        if self._last_clean_size is not None:
+            data["last_clean_size"] = self._last_clean_size
+        if self._last_clean_duration is not None:
+            data["last_clean_duration"] = self._last_clean_duration
+        if self._last_cleaned is not None:
+            data["last_cleaned"] = self._last_cleaned
 
         return data
 
@@ -371,7 +381,21 @@ class WyzeVac(StateVacuumEntity):
             finally:
                 await self.hass.async_add_executor_job(lambda: self._client.vacuums.set_suction_level(device_mac=self._vac_mac, device_model=self._model, suction_level=wyze_suction))
             self.async_schedule_update_ha_state(force_refresh=True)
-    
+            
+    def time_ago(self, dt):
+        diff = datetime.now() - dt
+        seconds = int(diff.total_seconds())
+        if seconds < 60:
+            return f"{seconds}s"
+        elif seconds < 3600:
+            return f"{seconds // 60}m"
+        elif seconds < 86400:
+            return f"{seconds // 3600}h"
+        elif seconds < 31536000:
+            return f"{seconds // 86400}d"
+        else:
+            return f"{seconds // 31536000}y"
+        
     async def get_last_map(self):
         try:
             vacuum = await self.hass.async_add_executor_job(lambda: self._client.vacuums.info(device_mac=self._vac_mac))
@@ -384,6 +408,11 @@ class WyzeVac(StateVacuumEntity):
         latest = None
         try:
             latest = await self.hass.async_add_executor_job(lambda: self._client.vacuums.get_sweep_records(device_mac=self._vac_mac, since=datetime.now())[0])
+            if latest:
+                self._last_clean_size = round(latest.clean_size / 100 * 10.7639, 1)  # convert m^2 (×100) to sqft, see sdk docs
+                self._last_clean_duration = latest.clean_time
+                self._last_cleaned = self.time_ago(latest.started)
+
         except:
             _LOGGER.warn("Could not grab latest map, will use maps from maps list")
         url = None
